@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { KakaoMap, type MapPin } from "./kakao-map";
+import { useState, useMemo, useCallback, useRef } from "react";
+import { KakaoMap, type MapPin, type KakaoMapHandle } from "./kakao-map";
 
 const STATUS_OPTIONS = ["전체", "일반공고", "정정공고"];
 const TYPE_OPTIONS = ["전체", "공공임대", "공공분양"];
@@ -18,6 +18,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [flyTo, setFlyTo] = useState<{ lat: number; lng: number; level: number } | null>(null);
+  const mapHandleRef = useRef<KakaoMapHandle>(null);
 
   const filtered = useMemo(() => {
     return pins.filter((p) => {
@@ -33,6 +34,10 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const handleListClick = useCallback((pin: MapPin) => {
     setSelectedPin(pin);
     setFlyTo({ lat: pin.lat, lng: pin.lng, level: 4 });
+    // 약간의 딜레이 후 오버레이 열기 (지도 이동 완료 후)
+    setTimeout(() => {
+      mapHandleRef.current?.openPin(pin.id);
+    }, 400);
   }, []);
 
   const handleMyLocation = useCallback(() => {
@@ -50,6 +55,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
     <div className="relative w-full h-dvh overflow-hidden">
       {/* 지도 — 전체 화면 배경 */}
       <KakaoMap
+        ref={mapHandleRef}
         pins={filtered}
         className="absolute inset-0 w-full h-full"
         onPinClick={(pin) => setSelectedPin(pin)}
