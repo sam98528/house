@@ -234,7 +234,7 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function Kakao
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = new Map();
 
-    pinList.filter(pin => pin.hasCoords !== false && pin.lat && pin.lng).forEach((pin) => {
+    pinList.filter(pin => pin.lat && pin.lng).forEach((pin) => {
       const position = new kakao.maps.LatLng(pin.lat, pin.lng);
       const marker = new kakao.maps.Marker({ map, position, title: pin.title });
 

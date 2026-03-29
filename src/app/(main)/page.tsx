@@ -10,6 +10,27 @@ const supabase = createClient(
 
 export const revalidate = 3600;
 
+// 좌표 없을 때 지역 중심 좌표로 대체
+const REGION_FALLBACK: Record<string, { lat: number; lng: number }> = {
+  서울특별시: { lat: 37.5665, lng: 126.978 },
+  부산광역시: { lat: 35.1796, lng: 129.0756 },
+  대구광역시: { lat: 35.8714, lng: 128.6014 },
+  인천광역시: { lat: 37.4563, lng: 126.7052 },
+  광주광역시: { lat: 35.1595, lng: 126.8526 },
+  대전광역시: { lat: 36.3504, lng: 127.3845 },
+  울산광역시: { lat: 35.5384, lng: 129.3114 },
+  세종특별자치시: { lat: 36.48, lng: 127.2589 },
+  경기도: { lat: 37.275, lng: 127.0095 },
+  강원특별자치도: { lat: 37.8228, lng: 128.1555 },
+  충청북도: { lat: 36.6357, lng: 127.4912 },
+  충청남도: { lat: 36.6588, lng: 126.6728 },
+  전북특별자치도: { lat: 35.8203, lng: 127.1088 },
+  전라남도: { lat: 34.8161, lng: 126.4629 },
+  경상북도: { lat: 36.576, lng: 128.5056 },
+  경상남도: { lat: 35.4606, lng: 128.2132 },
+  제주특별자치도: { lat: 33.489, lng: 126.4983 },
+};
+
 function getRecruitStatus(beginDe: string, endDe: string): "모집중" | "모집예정" | "모집완료" {
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   if (!beginDe || !endDe) return "모집완료";
@@ -19,7 +40,6 @@ function getRecruitStatus(beginDe: string, endDe: string): "모집중" | "모집
 }
 
 export default async function HomePage() {
-  // 전체 공고 가져오기 (좌표 없는 것 포함)
   const { data: announcements } = await supabase
     .from("announcements")
     .select("*")
@@ -30,14 +50,18 @@ export default async function HomePage() {
   const pins: MapPin[] = items.map((item) => {
     const recruitStatus = getRecruitStatus(item.begin_de, item.end_de);
     const isSale = item.source === "sale";
-
-    // 공급유형: 임대는 suply_ty_nm, 분양은 "공공분양"
     const subType = isSale ? "공공분양" : (item.suply_ty_nm || "공공임대");
+
+    // 좌표: DB에 있으면 사용, 없으면 지역 중심 좌표
+    const hasExactCoords = item.lat != null && item.lng != null;
+    const fallback = REGION_FALLBACK[item.brtc_nm];
+    const lat = hasExactCoords ? item.lat : fallback?.lat ?? 36.5;
+    const lng = hasExactCoords ? item.lng : fallback?.lng ?? 127.5;
 
     return {
       id: item.id,
-      lat: item.lat,
-      lng: item.lng,
+      lat,
+      lng,
       title: item.pblanc_nm,
       status: item.sttus_nm,
       recruitStatus,
@@ -63,7 +87,7 @@ export default async function HomePage() {
       announceDe: item.rcrit_pblanc_de ? formatDate(item.rcrit_pblanc_de) : undefined,
       winnerDe: item.przwner_presnatn_de ? formatDate(item.przwner_presnatn_de) : undefined,
       heatMethod: item.heat_mthd_nm || undefined,
-      hasCoords: item.lat != null && item.lng != null,
+      hasCoords: hasExactCoords,
     };
   });
 

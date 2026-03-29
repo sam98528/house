@@ -140,10 +140,8 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
     setSelectedPin(pin);
     setPanelOpen(true);
     mapHandleRef.current?.clearRegionBorder();
-    if (pin.hasCoords !== false && pin.lat && pin.lng) {
-      mapHandleRef.current?.highlightPin(pin.id);
-      setTimeout(() => mapHandleRef.current?.flyToPin(pin), 50);
-    }
+    mapHandleRef.current?.highlightPin(pin.id);
+    setTimeout(() => mapHandleRef.current?.flyToPin(pin), 50);
   }, []);
 
   const handleMapPinClick = useCallback((pin: MapPin) => {
