@@ -105,17 +105,27 @@ AUTH_SECRET=
 NEXT_PUBLIC_KAKAO_MAP_KEY=
 ```
 
-## Public Data APIs
+## Public Data APIs (api_docs/ 참조)
 
-### LH 분양임대공고 (`src/lib/api/data-go-kr.ts`)
-- **Base URL**: `http://apis.data.go.kr/B552555/lhLeaseNoticeInfo1/lhLeaseNoticeInfo1`
-- LH 직접 공고 (토지/분양/임대), 일일 10,000건 한도
-- 필수 파라미터: `PG_SZ`, `PAGE`, `PAN_NT_ST_DT`, `CLSG_DT`
+### 1. LH 분양임대공고 (`src/lib/api/data-go-kr.ts`)
+- **URL**: `http://apis.data.go.kr/B552555/lhLeaseNoticeInfo1/lhLeaseNoticeInfo1`
+- **인증**: `serviceKey` (URL Encode)
+- **응답**: JSON 배열 `[{dsSch}, {resHeader, dsList}]` — 일반적인 REST 응답과 다른 구조
+- **필수 파라미터**: `PG_SZ`, `PAGE`, `PAN_ST_DT` (YYYYMMDD), `PAN_ED_DT` (YYYYMMDD)
+- **공고유형코드**: 01=토지, 05=분양주택, 06=임대주택, 13=주거복지, 22=상가, 39=신혼희망타운
+- **일일한도**: 10,000건 / TPS: 30
 
-### 청약홈 분양정보 (`src/lib/api/applyhome.ts`)
-- **Base URL**: `https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/`
-- 한국부동산원 제공, 일일 40,000건, APT/오피스텔/무순위/민간임대 10개 엔드포인트
-- 쿼리: `cond[HOUSE_NM::LIKE]`, `cond[SUBSCRPT_AREA_CODE::EQ]`, `cond[RCRIT_PBLANC_DE::GTE]`
+### 2. 마이홈포털 공공임대주택 단지정보 (`src/lib/api/myhome.ts`)
+- **URL**: `https://data.myhome.go.kr/rentalHouseList`
+- **인증**: `ServiceKey`
+- **응답**: JSON `{ code: "000", hsmpList: [...], msg: "OK" }`
+- **필수 파라미터**: `brtcCode` (광역시도 2자리), `signguCode` (시군구 3자리)
+- **특이사항**: 빈 값이 `null`이 아닌 빈 객체 `{}` 로 반환됨 → `normalizeEmptyObj()` 사용
+- **데이터**: 단지명, 주소, 세대수, 공급유형, 면적, 보증금/월세, 주택유형, 난방방식 등
+
+### 3. 청약홈 분양정보 (`src/lib/api/applyhome.ts`)
+- **URL**: `https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/`
+- **일일한도**: 40,000건 / APT·오피스텔·무순위·민간임대 10개 엔드포인트
 
 ## Important Notes
 
