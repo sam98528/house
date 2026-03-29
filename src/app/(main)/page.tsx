@@ -31,12 +31,13 @@ const REGION_FALLBACK: Record<string, { lat: number; lng: number }> = {
   제주특별자치도: { lat: 33.489, lng: 126.4983 },
 };
 
-function getRecruitStatus(beginDe: string, endDe: string): "모집중" | "모집예정" | "모집완료" {
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  if (!beginDe || !endDe) return "모집완료";
+function getRecruitStatus(beginDe: string, endDe: string): "모집중" | "모집예정" {
+  // 한국 시간 기준
+  const kr = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const today = kr.toISOString().slice(0, 10).replace(/-/g, "");
+  if (!beginDe || !endDe) return "모집중";
   if (today < beginDe) return "모집예정";
-  if (today <= endDe) return "모집중";
-  return "모집완료";
+  return "모집중";
 }
 
 export default async function HomePage() {
