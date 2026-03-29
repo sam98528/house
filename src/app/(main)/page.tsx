@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Suspense } from "react";
 import { AnnouncementFilters } from "@/components/announcement/filters";
+import { formatDate, formatWon } from "@/lib/api/myhome-v2";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,17 +17,8 @@ const supabase = createClient(
 );
 
 const statusColor: Record<string, string> = {
-  공고중: "bg-blue-100 text-blue-800",
-  접수중: "bg-green-100 text-green-800",
-  접수마감: "bg-gray-100 text-gray-600",
-  상담요청: "bg-yellow-100 text-yellow-800",
-  정정공고중: "bg-orange-100 text-orange-800",
-};
-
-const typeEmoji: Record<string, string> = {
-  분양주택: "🏠",
-  임대주택: "🏢",
-  "공공분양(신혼희망)": "💒",
+  일반공고: "bg-blue-100 text-blue-800",
+  정정공고: "bg-orange-100 text-orange-800",
 };
 
 export const revalidate = 3600;
@@ -36,7 +28,6 @@ interface PageProps {
     region?: string;
     status?: string;
     type?: string;
-    subtype?: string;
     q?: string;
   }>;
 }
@@ -47,26 +38,15 @@ export default async function HomePage({ searchParams }: PageProps) {
   let query = supabase
     .from("announcements")
     .select("*")
-    .order("pan_nt_st_dt", { ascending: false })
+    .order("rcrit_pblanc_de", { ascending: false })
     .limit(100);
 
-  if (params.region) {
-    query = query.ilike("cnp_cd_nm", `%${params.region}%`);
-  }
-  if (params.status) {
-    query = query.eq("pan_ss", params.status);
-  }
-  if (params.type) {
-    query = query.eq("upp_ais_tp_nm", params.type);
-  }
-  if (params.subtype) {
-    query = query.eq("ais_tp_cd_nm", params.subtype);
-  }
-  if (params.q) {
-    query = query.ilike("pan_nm", `%${params.q}%`);
-  }
+  if (params.region) query = query.eq("brtc_nm", params.region);
+  if (params.status) query = query.eq("sttus_nm", params.status);
+  if (params.type) query = query.eq("source", params.type);
+  if (params.q) query = query.ilike("pblanc_nm", `%${params.q}%`);
 
-  const { data: announcements, count } = await query;
+  const { data: announcements } = await query;
   const items = announcements ?? [];
 
   return (
@@ -74,7 +54,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       <header className="mb-4">
         <h1 className="text-2xl font-bold">청약하우스</h1>
         <p className="text-gray-500 text-sm mt-1">
-          LH 분양임대 공고를 한눈에
+          공공주택 모집공고를 한눈에
         </p>
       </header>
 
@@ -82,7 +62,6 @@ export default async function HomePage({ searchParams }: PageProps) {
         <AnnouncementFilters />
       </Suspense>
 
-      {/* 결과 카운트 */}
       <div className="text-xs text-gray-400 mt-3 mb-2">
         {items.length}건의 공고
       </div>
@@ -94,12 +73,11 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* 공고 목록 */}
       <div className="space-y-3">
         {items.map((item) => (
           <a
             key={item.id}
-            href={item.dtl_url_mob || item.dtl_url || "#"}
+            href={item.mobile_url || item.pc_url || item.detail_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -107,31 +85,42 @@ export default async function HomePage({ searchParams }: PageProps) {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base leading-tight">
-                    {typeEmoji[item.upp_ais_tp_nm] || "📋"}{" "}
-                    {item.pan_nm}
+                    {item.source === "sale" ? "🏠" : "🏢"}{" "}
+                    {item.pblanc_nm}
                   </CardTitle>
                   <Badge
-                    className={`shrink-0 text-xs ${statusColor[item.pan_ss] || "bg-gray-100 text-gray-600"}`}
+                    className={`shrink-0 text-xs ${statusColor[item.sttus_nm] || "bg-gray-100 text-gray-600"}`}
                   >
-                    {item.pan_ss}
+                    {item.sttus_nm}
                   </Badge>
                 </div>
                 <CardDescription className="text-xs">
-                  {item.cnp_cd_nm}
+                  📍 {item.full_adres || `${item.brtc_nm} ${item.signgu_nm}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <span>{item.upp_ais_tp_nm}</span>
-                  {item.ais_tp_cd_nm && (
+                  <span>{item.hsmp_nm}</span>
+                  {item.suply_ty_nm && (
                     <>
                       <span>·</span>
-                      <span>{item.ais_tp_cd_nm}</span>
+                      <span>{item.suply_ty_nm}</span>
+                    </>
+                  )}
+                  {item.house_ty_nm && (
+                    <>
+                      <span>·</span>
+                      <span>{item.house_ty_nm}</span>
                     </>
                   )}
                 </div>
+                <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                  {item.sum_suply_co && <span>{item.sum_suply_co}호 공급</span>}
+                  {item.rent_gtn > 0 && <span>보증금 {formatWon(item.rent_gtn)}</span>}
+                  {item.mt_rntchrg > 0 && <span>월 {formatWon(item.mt_rntchrg)}</span>}
+                </div>
                 <div className="text-xs text-gray-400 mt-1">
-                  {item.pan_nt_st_dt} ~ {item.clsg_dt}
+                  모집 {formatDate(item.begin_de)} ~ {formatDate(item.end_de)}
                 </div>
               </CardContent>
             </Card>

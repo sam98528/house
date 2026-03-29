@@ -20,6 +20,7 @@ export interface MapPin {
   address?: string;
   date?: string;
   url?: string;
+  extra?: string;
 }
 
 interface KakaoMapProps {
@@ -120,6 +121,7 @@ export function KakaoMap({
             </div>
             <div style="font-size:14px;font-weight:600;line-height:1.4;margin-bottom:4px;">${pin.title}</div>
             ${pin.address ? `<div style="font-size:11px;color:#555;margin-bottom:4px;">📍 ${pin.address}</div>` : ""}
+            ${pin.extra ? `<div style="font-size:11px;color:#2563EB;margin-bottom:4px;">💰 ${pin.extra}</div>` : ""}
             ${pin.date ? `<div style="font-size:11px;color:#999;">${pin.date}</div>` : ""}
             ${pin.url ? `<a href="${pin.url}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;font-size:12px;color:#3B82F6;text-decoration:none;">공고 상세보기 →</a>` : ""}
             <div style="position:absolute;top:8px;right:10px;cursor:pointer;font-size:16px;color:#aaa;line-height:1;" id="close-overlay">✕</div>

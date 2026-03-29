@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { MapPageClient } from "@/components/map/map-page-client";
 import type { MapPin } from "@/components/map/kakao-map";
+import { formatDate, formatWon } from "@/lib/api/myhome-v2";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,10 +13,10 @@ export const revalidate = 3600;
 export default async function MapPage() {
   const { data: announcements } = await supabase
     .from("announcements")
-    .select("id, pan_nm, cnp_cd_nm, pan_ss, upp_ais_tp_nm, ais_tp_cd_nm, pan_nt_st_dt, clsg_dt, dtl_url, dtl_url_mob, lat, lng, address, complex_name")
+    .select("*")
     .not("lat", "is", null)
     .not("lng", "is", null)
-    .order("pan_nt_st_dt", { ascending: false });
+    .order("rcrit_pblanc_de", { ascending: false });
 
   const items = announcements ?? [];
 
@@ -23,14 +24,15 @@ export default async function MapPage() {
     id: item.id,
     lat: item.lat,
     lng: item.lng,
-    title: item.pan_nm,
-    status: item.pan_ss,
-    type: item.upp_ais_tp_nm,
-    subType: item.ais_tp_cd_nm,
-    region: item.cnp_cd_nm,
-    address: item.address || item.complex_name || undefined,
-    date: `${item.pan_nt_st_dt} ~ ${item.clsg_dt}`,
-    url: item.dtl_url_mob || item.dtl_url || undefined,
+    title: item.pblanc_nm,
+    status: item.sttus_nm,
+    type: item.source === "sale" ? "공공분양" : "공공임대",
+    subType: item.suply_ty_nm || item.house_ty_nm,
+    region: `${item.brtc_nm} ${item.signgu_nm}`,
+    address: item.full_adres || `${item.brtc_nm} ${item.signgu_nm}`,
+    date: `모집 ${formatDate(item.begin_de)} ~ ${formatDate(item.end_de)}`,
+    url: item.mobile_url || item.pc_url || item.detail_url || undefined,
+    extra: item.rent_gtn > 0 ? `보증금 ${formatWon(item.rent_gtn)} / 월 ${formatWon(item.mt_rntchrg)}` : undefined,
   }));
 
   return <MapPageClient pins={pins} />;
