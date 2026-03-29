@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Auth**: Auth.js v5 (Kakao, Naver social login)
 - **Map**: Kakao Maps JavaScript SDK
 - **Deploy**: Vercel (Hobby tier)
-- **Data Source**: 공공데이터포털 (data.go.kr) LH 분양임대 공고 API
+- **Data Source**: 공공데이터포털 (data.go.kr) — LH 분양임대공고 API + 청약홈 분양정보 API
 
 ## Commands
 
@@ -105,10 +105,24 @@ AUTH_SECRET=
 NEXT_PUBLIC_KAKAO_MAP_KEY=
 ```
 
+## Public Data APIs
+
+### LH 분양임대공고 (`src/lib/api/data-go-kr.ts`)
+- **Base URL**: `http://apis.data.go.kr/B552555/lhLeaseNoticeInfo1/lhLeaseNoticeInfo1`
+- LH 직접 공고 (토지/분양/임대), 일일 10,000건 한도
+- 필수 파라미터: `PG_SZ`, `PAGE`, `PAN_NT_ST_DT`, `CLSG_DT`
+
+### 청약홈 분양정보 (`src/lib/api/applyhome.ts`)
+- **Base URL**: `https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/`
+- 한국부동산원 제공, 일일 40,000건, APT/오피스텔/무순위/민간임대 10개 엔드포인트
+- 쿼리: `cond[HOUSE_NM::LIKE]`, `cond[SUBSCRPT_AREA_CODE::EQ]`, `cond[RCRIT_PBLANC_DE::GTE]`
+
 ## Important Notes
 
 - Next.js 16의 App Router는 기존 버전과 다를 수 있음. 코드 작성 전 `node_modules/next/dist/docs/` 가이드를 확인할 것 (AGENTS.md 참조)
-- 공공데이터포털 API는 XML 응답이 기본. JSON 요청 시 `_type=json` 파라미터 추가
+- LH API는 JSON 기본. 청약홈 API도 JSON 지원 (`_type=json` 불필요)
 - 카카오맵은 클라이언트 사이드 전용 — `"use client"` 필수, dynamic import 사용
+- 카카오맵 REST API는 CORS 미지원 → 서버사이드 프록시 필요 (geocoding 등)
 - Supabase RLS 정책으로 사용자 데이터 보호 (user_filters, user_bookmarks)
 - 한국어 검색/정렬 시 locale 고려 (`Intl.Collator('ko')`)
+- 프로세스 기록: `docs/process/` 디렉토리에 Obsidian 호환 마크다운으로 관리
