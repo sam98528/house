@@ -17,6 +17,7 @@ export interface MapPin {
   status?: string;
   type?: string;
   subType?: string;
+  region?: string;
   date?: string;
   url?: string;
 }
@@ -53,11 +54,15 @@ export function KakaoMap({
     const map = new kakao.maps.Map(mapRef.current, mapOption);
     mapInstanceRef.current = map;
 
-    // 줌 컨트롤
-    map.addControl(
-      new kakao.maps.ZoomControl(),
-      kakao.maps.ControlPosition.RIGHT
-    );
+  }, [center, level]);
+
+  // center/level 변경 시 지도 이동
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !window.kakao?.maps) return;
+    const { kakao } = window;
+    map.setCenter(new kakao.maps.LatLng(center.lat, center.lng));
+    map.setLevel(level);
   }, [center, level]);
 
   // SDK 로드
