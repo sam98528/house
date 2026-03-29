@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { KakaoMap, type MapPin, type KakaoMapHandle } from "./kakao-map";
 import { DetailPanel } from "./detail-panel";
+import { BottomCarousel } from "./bottom-carousel";
 
 const RECRUIT_OPTIONS = ["전체", "모집중", "모집예정", "모집완료"] as const;
 const SUPPLY_TYPES = ["국민임대","매입임대","영구임대","전세임대","행복주택","10년임대","50년임대","공공지원민간임대주택"];
@@ -62,6 +63,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const [expandedAnnouncement, setExpandedAnnouncement] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [visiblePins, setVisiblePins] = useState<MapPin[]>([]);
   const mapHandleRef = useRef<KakaoMapHandle>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -140,6 +142,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
     setSelectedPin(pin);
     setPanelOpen(true);
     mapHandleRef.current?.clearRegionBorder();
+    mapHandleRef.current?.highlightPin(pin.id);
     setTimeout(() => mapHandleRef.current?.flyToPin(pin), 50);
   }, []);
 
@@ -148,6 +151,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
     setPanelOpen(true);
     setExpandedRegion(pin.brtcNm || null);
     setExpandedAnnouncement(pin.title);
+    mapHandleRef.current?.highlightPin(pin.id);
   }, []);
 
   const handleRegionClick = useCallback((regionName: string) => {
@@ -179,7 +183,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
 
   return (
     <div className="relative w-full h-dvh overflow-hidden">
-      <KakaoMap ref={mapHandleRef} pins={filtered} className="absolute inset-0 w-full h-full" onPinClick={handleMapPinClick} />
+      <KakaoMap ref={mapHandleRef} pins={filtered} className="absolute inset-0 w-full h-full" onPinClick={handleMapPinClick} onBoundsChanged={setVisiblePins} />
 
       {/* 사이드 패널 */}
       <div className={`absolute top-0 left-0 z-20 h-full transition-transform duration-300 w-[85vw] max-w-[380px] ${panelOpen ? "translate-x-0" : "-translate-x-full"}`}>
@@ -365,7 +369,17 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
         </svg>
       </button>
 
-      <DetailPanel pin={selectedPin} onClose={() => setSelectedPin(null)} />
+      {/* 하단 카루셀 — 선택된 핀이 없을 때만 표시 */}
+      {!selectedPin && visiblePins.length > 0 && (
+        <BottomCarousel
+          pins={visiblePins}
+          selectedId={null}
+          onSelect={handleSelectPin}
+        />
+      )}
+
+      {/* 우하단 디테일 */}
+      <DetailPanel pin={selectedPin} onClose={() => { setSelectedPin(null); mapHandleRef.current?.highlightPin(null); }} />
     </div>
   );
 }
