@@ -40,11 +40,10 @@ interface KakaoMapProps {
   pins?: MapPin[];
   className?: string;
   onPinClick?: (pin: MapPin) => void;
-  flyTo?: { lat: number; lng: number; level: number } | null;
 }
 
 export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function KakaoMap(
-  { pins = [], className = "w-full h-full", onPinClick, flyTo },
+  { pins = [], className = "w-full h-full", onPinClick },
   ref
 ) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -55,19 +54,22 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function Kakao
   onPinClickRef.current = onPinClick;
   pinsRef.current = pins;
 
-  // 외부에서 핀 위치로 이동 (사이드 패널 폭 고려하여 약간 오른쪽으로)
   useImperativeHandle(ref, () => ({
     flyToPin(pin: MapPin) {
       const map = mapInstanceRef.current;
       if (!map || !window.kakao?.maps) return;
       const { kakao } = window;
-      // 사이드 패널(380px) 고려하여 중심을 약간 오른쪽으로
-      const proj = map.getProjection();
-      const point = proj.pointFromCoords(new kakao.maps.LatLng(pin.lat, pin.lng));
-      point.x -= 150; // 패널 폭의 절반만큼 왼쪽으로 → 보이는 영역에서 중앙
-      const adjusted = proj.coordsFromPoint(point);
-      map.panTo(adjusted);
-      map.setLevel(4, { animate: true });
+      const target = new kakao.maps.LatLng(pin.lat, pin.lng);
+
+      // 현재 레벨이 7 이상이면 먼저 줌인
+      const currentLevel = map.getLevel();
+      if (currentLevel > 6) {
+        map.setLevel(5, { animate: true });
+        // 줌 애니메이션 후 부드럽게 이동
+        setTimeout(() => map.panTo(target), 300);
+      } else {
+        map.panTo(target);
+      }
     },
   }));
 
@@ -101,16 +103,6 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function Kakao
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // flyTo (현재위치 등)
-  useEffect(() => {
-    if (!flyTo) return;
-    const map = mapInstanceRef.current;
-    if (!map || !window.kakao?.maps) return;
-    const { kakao } = window;
-    map.panTo(new kakao.maps.LatLng(flyTo.lat, flyTo.lng));
-    map.setLevel(flyTo.level, { animate: true });
-  }, [flyTo]);
-
   // pins 변경
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -130,6 +122,8 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function Kakao
       const marker = new kakao.maps.Marker({ map, position, title: pin.title });
 
       kakao.maps.event.addListener(marker, "click", () => {
+        // 핀 클릭: 현재 줌 유지, 부드럽게 이동만
+        map.panTo(position);
         if (onPinClickRef.current) onPinClickRef.current(pin);
       });
 

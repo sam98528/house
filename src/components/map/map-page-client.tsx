@@ -18,7 +18,6 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const [typeFilter, setTypeFilter] = useState("전체");
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
-  const [flyTo, setFlyTo] = useState<{ lat: number; lng: number; level: number } | null>(null);
   const mapHandleRef = useRef<KakaoMapHandle>(null);
 
   const filtered = useMemo(() => {
@@ -46,7 +45,14 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const handleMyLocation = useCallback(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setFlyTo({ lat: pos.coords.latitude, lng: pos.coords.longitude, level: 6 }),
+      (pos) => {
+        mapHandleRef.current?.flyToPin({
+          id: "my-location",
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          title: "내 위치",
+        });
+      },
       () => alert("위치 정보를 가져올 수 없습니다."),
       { enableHighAccuracy: true }
     );
@@ -60,7 +66,6 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
         pins={filtered}
         className="absolute inset-0 w-full h-full"
         onPinClick={handleSelectPin}
-        flyTo={flyTo}
       />
 
       {/* 사이드 패널 */}
