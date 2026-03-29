@@ -1,106 +1,145 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import {
-  fetchLHAnnouncements,
-  formatDateForLH,
-  type LHAnnouncementItem,
-} from "@/lib/api/data-go-kr";
+import { fetchRentalNotices, fetchSaleNotices } from "@/lib/api/myhome-v2";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-function toAnnouncement(item: LHAnnouncementItem) {
-  return {
-    pan_id: item.PAN_ID,
-    pan_nm: item.PAN_NM,
-    upp_ais_tp_cd: item.UPP_AIS_TP_CD,
-    upp_ais_tp_nm: item.UPP_AIS_TP_NM,
-    ais_tp_cd: item.AIS_TP_CD,
-    ais_tp_cd_nm: item.AIS_TP_CD_NM,
-    cnp_cd_nm: item.CNP_CD_NM,
-    pan_nt_st_dt: item.PAN_NT_ST_DT,
-    clsg_dt: item.CLSG_DT,
-    pan_dt: item.PAN_DT || null,
-    pan_ss: item.PAN_SS,
-    dtl_url: item.DTL_URL,
-    dtl_url_mob: item.DTL_URL_MOB || null,
-    spl_inf_tp_cd: item.SPL_INF_TP_CD,
-    ccr_cnnt_sys_ds_cd: item.CCR_CNNT_SYS_DS_CD,
-    source: "lh",
-    raw_data: item,
-    updated_at: new Date().toISOString(),
-  };
+const KAKAO_KEY = process.env.KAKAO_REST_API_KEY!;
+
+async function geocode(address: string) {
+  if (!address || address.trim().length < 5) return null;
+  const res = await fetch(
+    `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address.trim())}&size=1`,
+    { headers: { Authorization: `KakaoAK ${KAKAO_KEY}` } }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data.documents?.length > 0) {
+    return {
+      lat: parseFloat(data.documents[0].y),
+      lng: parseFloat(data.documents[0].x),
+    };
+  }
+  return null;
 }
 
 export async function GET(request: Request) {
-  // Cron 또는 수동 실행 허용 (개발 중에는 인증 생략)
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    // CRON_SECRET이 설정된 경우에만 인증 확인
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const now = new Date();
-    const twoMonthsAgo = new Date(now);
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-
-    // 분양주택(05) + 임대주택(06) + 신혼희망타운(39) 가져오기
-    const typeCodes = ["05", "06", "39"] as const;
     let totalInserted = 0;
-    let totalUpdated = 0;
 
-    for (const typeCode of typeCodes) {
-      let page = 1;
-      let hasMore = true;
+    // 공공임대
+    let page = 1;
+    while (true) {
+      const { items } = await fetchRentalNotices({ pageNo: page, numOfRows: 100 });
+      if (items.length === 0) break;
 
-      while (hasMore) {
-        const { items, totalCount } = await fetchLHAnnouncements({
-          PG_SZ: 100,
-          PAGE: page,
-          UPP_AIS_TP_CD: typeCode,
-          PAN_ST_DT: formatDateForLH(twoMonthsAgo),
-          PAN_ED_DT: formatDateForLH(now),
+      const rows = [];
+      for (const i of items) {
+        const geo = await geocode(i.fullAdres);
+        rows.push({
+          pblanc_id: i.pblancId,
+          house_sn: i.houseSn,
+          pblanc_nm: i.pblancNm,
+          sttus_nm: i.sttusNm,
+          suply_instt_nm: i.suplyInsttNm,
+          house_ty_nm: i.houseTyNm,
+          suply_ty_nm: i.suplyTyNm,
+          rcrit_pblanc_de: i.rcritPblancDe,
+          przwner_presnatn_de: i.przwnerPresnatnDe,
+          begin_de: i.beginDe,
+          end_de: i.endDe,
+          hsmp_nm: i.hsmpNm,
+          brtc_nm: i.brtcNm,
+          signgu_nm: i.signguNm,
+          full_adres: i.fullAdres?.trim() || null,
+          sum_suply_co: i.sumSuplyCo || null,
+          rent_gtn: i.rentGtn || null,
+          mt_rntchrg: i.mtRntchrg || null,
+          pc_url: i.pcUrl,
+          mobile_url: i.mobileUrl,
+          detail_url: i.url,
+          heat_mthd_nm: i.heatMthdNm,
+          pnu: i.pnu,
+          source: "rental",
+          lat: geo?.lat || null,
+          lng: geo?.lng || null,
+          raw_data: i,
+          updated_at: new Date().toISOString(),
         });
-
-        if (items.length === 0) break;
-
-        // Upsert (pan_id + source 기준)
-        const rows = items.map(toAnnouncement);
-
-        const { error } = await supabase
-          .from("announcements")
-          .upsert(rows, { onConflict: "pan_id,source" });
-
-        if (error) {
-          console.error(`Upsert 에러 (${typeCode}, page ${page}):`, error);
-        } else {
-          totalInserted += rows.length;
-        }
-
-        hasMore = page * 100 < totalCount;
-        page++;
-
-        // API rate limit (30 TPS) 방지
-        await new Promise((r) => setTimeout(r, 200));
       }
+
+      await supabase
+        .from("announcements")
+        .upsert(rows, { onConflict: "pblanc_id,house_sn,source" });
+
+      totalInserted += rows.length;
+      if (items.length < 100) break;
+      page++;
+    }
+
+    // 공공분양
+    page = 1;
+    while (true) {
+      const { items } = await fetchSaleNotices({ pageNo: page, numOfRows: 100 });
+      if (items.length === 0) break;
+
+      const rows = [];
+      for (const i of items) {
+        const geo = await geocode(i.fullAdres);
+        rows.push({
+          pblanc_id: i.pblancId,
+          house_sn: i.houseSn,
+          pblanc_nm: i.pblancNm,
+          sttus_nm: i.sttusNm,
+          suply_instt_nm: i.suplyInsttNm,
+          house_ty_nm: i.houseTyNm,
+          rcrit_pblanc_de: i.rcritPblancDe,
+          przwner_presnatn_de: i.przwnerPresnatnDe,
+          begin_de: i.beginDe,
+          end_de: i.endDe,
+          hsmp_nm: i.hsmpNm,
+          brtc_nm: i.brtcNm,
+          signgu_nm: i.signguNm,
+          full_adres: i.fullAdres?.trim() || null,
+          sum_suply_co: i.sumSuplyCo || null,
+          pc_url: i.pcUrl,
+          mobile_url: i.mobileUrl,
+          detail_url: i.url,
+          source: "sale",
+          lat: geo?.lat || null,
+          lng: geo?.lng || null,
+          raw_data: i,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      await supabase
+        .from("announcements")
+        .upsert(rows, { onConflict: "pblanc_id,house_sn,source" });
+
+      totalInserted += rows.length;
+      if (items.length < 100) break;
+      page++;
     }
 
     return NextResponse.json({
       success: true,
-      message: `동기화 완료: ${totalInserted}건 처리`,
+      message: `동기화 완료: ${totalInserted}건`,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("동기화 실패:", error);
     return NextResponse.json(
-      {
-        error: "동기화 중 오류 발생",
-        detail: error instanceof Error ? error.message : String(error),
-      },
+      { error: "동기화 중 오류", detail: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

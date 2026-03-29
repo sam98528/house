@@ -3,14 +3,12 @@
 import { useState, useMemo, useCallback } from "react";
 import { KakaoMap, type MapPin } from "./kakao-map";
 
-const STATUS_OPTIONS = ["전체", "공고중", "접수중", "접수마감", "정정공고중"];
-const TYPE_OPTIONS = ["전체", "임대주택", "분양주택", "공공분양(신혼희망)"];
+const STATUS_OPTIONS = ["전체", "일반공고", "정정공고"];
+const TYPE_OPTIONS = ["전체", "공공임대", "공공분양"];
 
 const statusDot: Record<string, string> = {
-  공고중: "bg-blue-500",
-  접수중: "bg-green-500",
-  접수마감: "bg-gray-400",
-  정정공고중: "bg-orange-500",
+  일반공고: "bg-blue-500",
+  정정공고: "bg-orange-500",
 };
 
 export function MapPageClient({ pins }: { pins: MapPin[] }) {
@@ -142,19 +140,22 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                   {pin.address && (
                     <p className="text-xs text-gray-500 mt-1 truncate">📍 {pin.address}</p>
                   )}
+                  {pin.extra && (
+                    <p className="text-xs text-blue-600 mt-0.5">💰 {pin.extra}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[11px] text-gray-400">{pin.region}</span>
-                    <span className="text-[11px] text-gray-300">|</span>
                     <span className="text-[11px] text-gray-400">{pin.subType || pin.type}</span>
+                    <span className="text-[11px] text-gray-300">|</span>
+                    <span className="text-[11px] text-gray-400">{pin.region}</span>
                   </div>
                   <p className="text-[11px] text-gray-400 mt-0.5">{pin.date}</p>
                 </div>
                 <span
                   className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded ${
-                    pin.status === "접수중"
-                      ? "bg-green-100 text-green-700"
-                      : pin.status === "공고중"
-                        ? "bg-blue-100 text-blue-700"
+                    pin.status === "일반공고"
+                      ? "bg-blue-100 text-blue-700"
+                      : pin.status === "정정공고"
+                        ? "bg-orange-100 text-orange-700"
                         : "bg-gray-100 text-gray-500"
                   }`}
                 >

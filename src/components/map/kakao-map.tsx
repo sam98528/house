@@ -18,6 +18,7 @@ export interface MapPin {
   subType?: string;
   region?: string;
   address?: string;
+  complexName?: string;
   date?: string;
   url?: string;
   extra?: string;
@@ -97,10 +98,8 @@ export function KakaoMap({
     if (pins.length === 0) return;
 
     const statusColor: Record<string, string> = {
-      공고중: "#3B82F6",
-      접수중: "#22C55E",
-      접수마감: "#9CA3AF",
-      정정공고중: "#F97316",
+      일반공고: "#3B82F6",
+      정정공고: "#F97316",
     };
 
     pins.forEach((pin) => {
