@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "홈", icon: "🏠" },
+  { href: "/", label: "공고", icon: "📋" },
+  { href: "/map", label: "지도", icon: "🗺️" },
   { href: "/favorites", label: "관심", icon: "⭐" },
   { href: "/login", label: "내정보", icon: "👤" },
 ];
