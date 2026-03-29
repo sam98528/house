@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 /**
- * Geocoding 프록시 — Nominatim (OpenStreetMap, 무료, 키 불필요)
- * GET /api/geocode?q=경기도+하남시+풍산동
- * 제한: 1 request/second (Nominatim 정책)
+ * 카카오 Geocoding 프록시
+ * 카카오 REST API는 CORS 미지원 → 서버사이드 프록시
+ * GET /api/geocode?q=청주시+오송읍
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -13,30 +13,50 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "q 파라미터 필요" }, { status: 400 });
   }
 
-  const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=kr&limit=5&accept-language=ko`;
+  const headers = {
+    Authorization: `KakaoAK ${process.env.KAKAO_REST_API_KEY}`,
+  };
 
-  const res = await fetch(nominatimUrl, {
-    headers: {
-      "User-Agent": "ChungYakHouse/1.0 (housing-announcement-viewer)",
-    },
-  });
+  // 1차: keyword 검색 (단지명, 장소명)
+  const kwRes = await fetch(
+    `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=5`,
+    { headers }
+  );
 
-  if (!res.ok) {
-    return NextResponse.json(
-      { error: "Geocoding 실패", status: res.status },
-      { status: res.status }
-    );
+  if (kwRes.ok) {
+    const kwData = await kwRes.json();
+    if (kwData.documents?.length > 0) {
+      return NextResponse.json({
+        results: kwData.documents.map((d: any) => ({
+          lat: parseFloat(d.y),
+          lng: parseFloat(d.x),
+          name: d.place_name,
+          address: d.road_address_name || d.address_name,
+          category: d.category_group_name,
+        })),
+      });
+    }
   }
 
-  const data = await res.json();
+  // 2차: address 검색 (주소)
+  const addrRes = await fetch(
+    `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=5`,
+    { headers }
+  );
 
-  // Nominatim 응답을 간단한 형태로 변환
-  const results = data.map((item: any) => ({
-    lat: parseFloat(item.lat),
-    lng: parseFloat(item.lon),
-    name: item.display_name,
-    type: item.type,
-  }));
+  if (addrRes.ok) {
+    const addrData = await addrRes.json();
+    if (addrData.documents?.length > 0) {
+      return NextResponse.json({
+        results: addrData.documents.map((d: any) => ({
+          lat: parseFloat(d.y),
+          lng: parseFloat(d.x),
+          name: d.address_name,
+          address: d.road_address?.address_name || d.address_name,
+        })),
+      });
+    }
+  }
 
-  return NextResponse.json({ results });
+  return NextResponse.json({ results: [] });
 }

@@ -1,22 +1,13 @@
 "use client";
 
-import { LeafletMap } from "./leaflet-map";
+import { KakaoMap, type MapPin } from "./kakao-map";
 
-interface Pin {
-  lat: number;
-  lng: number;
-  title: string;
-  info?: string;
-  count: number;
-  region: string;
-}
-
-export function MapView({ pins }: { pins: Pin[] }) {
+export function MapView({ pins }: { pins: MapPin[] }) {
   return (
-    <LeafletMap
+    <KakaoMap
       pins={pins}
-      center={[36.5, 127.5]}
-      zoom={7}
+      center={{ lat: 36.5, lng: 127.5 }}
+      level={13}
       className="w-full h-[500px] rounded-lg border"
     />
   );
