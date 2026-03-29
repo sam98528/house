@@ -5,28 +5,45 @@ import { KakaoMap, type MapPin, type KakaoMapHandle } from "./kakao-map";
 import { DetailPanel } from "./detail-panel";
 
 const RECRUIT_OPTIONS = ["전체", "모집중", "모집예정", "모집완료"] as const;
-const REGIONS = [
-  "서울특별시", "경기도", "인천광역시", "부산광역시", "대구광역시",
-  "광주광역시", "대전광역시", "울산광역시", "세종특별자치시",
-  "강원특별자치도", "충청북도", "충청남도", "전북특별자치도",
-  "전라남도", "경상북도", "경상남도", "제주특별자치도",
-];
-const SUPPLY_TYPES = [
-  "국민임대", "매입임대", "영구임대", "전세임대", "행복주택",
-  "10년임대", "50년임대", "공공지원민간임대주택",
-];
+const SUPPLY_TYPES = ["국민임대","매입임대","영구임대","전세임대","행복주택","10년임대","50년임대","공공지원민간임대주택"];
 const shortRegion = (r: string) => r.replace(/특별자치도|특별자치시|광역시|특별시/g, "").replace(/도$/, "");
 
-const recruitDot: Record<string, string> = {
-  모집중: "bg-green-500", 모집예정: "bg-blue-400", 모집완료: "bg-gray-300",
-};
+const recruitDot: Record<string, string> = { 모집중: "bg-green-500", 모집예정: "bg-blue-400", 모집완료: "bg-gray-300" };
 const recruitBadge: Record<string, string> = {
   모집중: "text-green-700 bg-green-50 border-green-200",
   모집예정: "text-blue-700 bg-blue-50 border-blue-200",
   모집완료: "text-gray-500 bg-gray-50 border-gray-200",
 };
 
-interface PinGroup {
+// 시도 좌표 (지역 클릭 시 지도 이동)
+const REGION_CENTER: Record<string, { lat: number; lng: number; level: number }> = {
+  서울특별시: { lat: 37.5665, lng: 126.978, level: 9 },
+  경기도: { lat: 37.275, lng: 127.0095, level: 10 },
+  인천광역시: { lat: 37.4563, lng: 126.7052, level: 9 },
+  부산광역시: { lat: 35.1796, lng: 129.0756, level: 9 },
+  대구광역시: { lat: 35.8714, lng: 128.6014, level: 9 },
+  광주광역시: { lat: 35.1595, lng: 126.8526, level: 9 },
+  대전광역시: { lat: 36.3504, lng: 127.3845, level: 9 },
+  울산광역시: { lat: 35.5384, lng: 129.3114, level: 9 },
+  세종특별자치시: { lat: 36.48, lng: 127.2589, level: 9 },
+  강원특별자치도: { lat: 37.8228, lng: 128.1555, level: 11 },
+  충청북도: { lat: 36.6357, lng: 127.4912, level: 10 },
+  충청남도: { lat: 36.6588, lng: 126.6728, level: 10 },
+  전북특별자치도: { lat: 35.8203, lng: 127.1088, level: 10 },
+  전라남도: { lat: 34.8161, lng: 126.4629, level: 10 },
+  경상북도: { lat: 36.576, lng: 128.5056, level: 10 },
+  경상남도: { lat: 35.4606, lng: 128.2132, level: 10 },
+  제주특별자치도: { lat: 33.489, lng: 126.4983, level: 10 },
+};
+
+interface RegionGroup {
+  name: string;
+  total: number;
+  recruiting: number;
+  announcements: AnnouncementGroup[];
+}
+
+interface AnnouncementGroup {
   name: string;
   recruitStatus: string;
   type: string;
@@ -40,9 +57,9 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const [recruitFilter, setRecruitFilter] = useState<string>("모집중");
   const [typeFilter, setTypeFilter] = useState<string>("전체");
   const [supplyFilter, setSupplyFilter] = useState<string>("전체");
-  const [regionFilter, setRegionFilter] = useState<string>("전체");
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
+  const [expandedAnnouncement, setExpandedAnnouncement] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const mapHandleRef = useRef<KakaoMapHandle>(null);
@@ -69,31 +86,48 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
       if (recruitFilter !== "전체" && p.recruitStatus !== recruitFilter) return false;
       if (typeFilter !== "전체" && p.type !== typeFilter) return false;
       if (supplyFilter !== "전체" && p.subType !== supplyFilter) return false;
-      if (regionFilter !== "전체" && p.brtcNm !== regionFilter) return false;
       return true;
     });
-  }, [pins, search, recruitFilter, typeFilter, supplyFilter, regionFilter]);
+  }, [pins, search, recruitFilter, typeFilter, supplyFilter]);
 
-  // 공고명으로 그룹핑
-  const groups = useMemo(() => {
-    const map = new Map<string, MapPin[]>();
+  // 지역 → 공고 → 단지 3단계 그룹핑
+  const regionGroups = useMemo(() => {
+    const regionMap = new Map<string, Map<string, MapPin[]>>();
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+
     filtered.forEach((p) => {
-      const key = p.title;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
+      const region = p.brtcNm || "기타";
+      if (!regionMap.has(region)) regionMap.set(region, new Map());
+      const announcements = regionMap.get(region)!;
+      if (!announcements.has(p.title)) announcements.set(p.title, []);
+      announcements.get(p.title)!.push(p);
     });
-    const result: PinGroup[] = [];
-    map.forEach((pins, name) => {
-      result.push({
-        name,
-        recruitStatus: pins[0].recruitStatus || "모집완료",
-        type: pins[0].type || "",
-        subType: pins[0].subType || "",
-        date: pins[0].date || "",
-        pins,
+
+    const result: RegionGroup[] = [];
+    regionMap.forEach((announcements, regionName) => {
+      let total = 0;
+      let recruiting = 0;
+      const annGroups: AnnouncementGroup[] = [];
+
+      announcements.forEach((pins, annName) => {
+        total += pins.length;
+        const isRecruiting = pins.some(p => p.recruitStatus === "모집중");
+        if (isRecruiting) recruiting += pins.length;
+
+        annGroups.push({
+          name: annName,
+          recruitStatus: pins[0].recruitStatus || "모집완료",
+          type: pins[0].type || "",
+          subType: pins[0].subType || "",
+          date: pins[0].date || "",
+          pins,
+        });
       });
+
+      result.push({ name: regionName, total, recruiting, announcements: annGroups });
     });
-    return result;
+
+    return result.sort((a, b) => b.total - a.total);
   }, [filtered]);
 
   useEffect(() => {
@@ -111,9 +145,21 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const handleMapPinClick = useCallback((pin: MapPin) => {
     setSelectedPin(pin);
     setPanelOpen(true);
-    // 해당 그룹 자동 펼침
-    setExpandedGroup(pin.title);
+    setExpandedRegion(pin.brtcNm || null);
+    setExpandedAnnouncement(pin.title);
   }, []);
+
+  const handleRegionClick = useCallback((regionName: string) => {
+    const isExpanding = expandedRegion !== regionName;
+    setExpandedRegion(isExpanding ? regionName : null);
+    if (isExpanding) {
+      setExpandedAnnouncement(null);
+      const center = REGION_CENTER[regionName];
+      if (center) {
+        mapHandleRef.current?.flyToPin({ id: "_region", lat: center.lat, lng: center.lng, title: "", _level: center.level } as any);
+      }
+    }
+  }, [expandedRegion]);
 
   const handleMyLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -125,11 +171,10 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setSearch(""); setRecruitFilter("모집중"); setTypeFilter("전체");
-    setSupplyFilter("전체"); setRegionFilter("전체");
+    setSearch(""); setRecruitFilter("모집중"); setTypeFilter("전체"); setSupplyFilter("전체");
   }, []);
 
-  const hasCustomFilters = search || typeFilter !== "전체" || supplyFilter !== "전체" || regionFilter !== "전체";
+  const hasCustomFilters = search || typeFilter !== "전체" || supplyFilter !== "전체";
 
   return (
     <div className="relative w-full h-dvh overflow-hidden">
@@ -154,7 +199,6 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
               {search && <button onClick={() => setSearch("")} className="absolute right-3 top-3 text-gray-400 text-xs">✕</button>}
             </div>
 
-            {/* 모집상태 탭 */}
             <div className="flex mt-3 bg-gray-100 rounded-lg p-0.5">
               {RECRUIT_OPTIONS.map((r) => (
                 <button key={r} onClick={() => setRecruitFilter(r)}
@@ -170,121 +214,132 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                 >{t}</button>
               ))}
               <button onClick={() => setShowMoreFilters(!showMoreFilters)}
-                className={`px-3 py-1.5 text-[11px] rounded-lg font-medium border transition-colors ${showMoreFilters || hasCustomFilters ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200"}`}
+                className={`px-3 py-1.5 text-[11px] rounded-lg font-medium border ${showMoreFilters || hasCustomFilters ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200"}`}
               >필터{hasCustomFilters ? " ●" : ""}</button>
             </div>
 
             {showMoreFilters && (
-              <div className="mt-2 pt-2 border-t border-gray-100 space-y-2">
-                <div>
-                  <p className="text-[10px] text-gray-400 mb-1">지역</p>
-                  <div className="flex flex-wrap gap-1">
-                    <button onClick={() => setRegionFilter("전체")} className={`px-2 py-0.5 text-[10px] rounded-full ${regionFilter === "전체" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}>전체</button>
-                    {REGIONS.map((r) => (
-                      <button key={r} onClick={() => setRegionFilter(regionFilter === r ? "전체" : r)}
-                        className={`px-2 py-0.5 text-[10px] rounded-full ${regionFilter === r ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-                      >{shortRegion(r)}</button>
-                    ))}
-                  </div>
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <p className="text-[10px] text-gray-400 mb-1">공급유형</p>
+                <div className="flex flex-wrap gap-1">
+                  <button onClick={() => setSupplyFilter("전체")} className={`px-2 py-0.5 text-[10px] rounded-full ${supplyFilter === "전체" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}>전체</button>
+                  {availableSupplyTypes.map(({ name, count }) => (
+                    <button key={name} onClick={() => setSupplyFilter(supplyFilter === name ? "전체" : name)}
+                      className={`px-2 py-0.5 text-[10px] rounded-full ${supplyFilter === name ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                    >{name} ({count})</button>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 mb-1">공급유형</p>
-                  <div className="flex flex-wrap gap-1">
-                    <button onClick={() => setSupplyFilter("전체")} className={`px-2 py-0.5 text-[10px] rounded-full ${supplyFilter === "전체" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}>전체</button>
-                    {availableSupplyTypes.map(({ name, count }) => (
-                      <button key={name} onClick={() => setSupplyFilter(supplyFilter === name ? "전체" : name)}
-                        className={`px-2 py-0.5 text-[10px] rounded-full ${supplyFilter === name ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-                      >{name} ({count})</button>
-                    ))}
-                  </div>
-                </div>
-                {hasCustomFilters && <button onClick={clearFilters} className="text-[10px] text-red-400">필터 초기화</button>}
+                {hasCustomFilters && <button onClick={clearFilters} className="text-[10px] text-red-400 mt-1">필터 초기화</button>}
               </div>
             )}
           </div>
 
-          {/* 결과 */}
           <div className="px-4 py-1.5 text-[11px] text-gray-400 border-b border-gray-50 bg-gray-50/50 shrink-0">
-            공고 {groups.length}건 · 단지 {filtered.length}개
+            {regionGroups.length}개 지역 · {filtered.length}건
           </div>
 
-          {/* 그룹 리스트 */}
+          {/* 지역별 리스트 */}
           <div className="flex-1 overflow-y-auto">
-            {groups.map((group) => {
-              const isMulti = group.pins.length > 1;
-              const isExpanded = expandedGroup === group.name;
-              const isSingleSelected = !isMulti && selectedPin?.id === group.pins[0].id;
+            {regionGroups.map((region) => {
+              const isRegionExpanded = expandedRegion === region.name;
 
               return (
-                <div key={group.name} ref={(el) => { if (el && group.pins.some(p => p.id === selectedPin?.id)) itemRefs.current.set(selectedPin!.id, el); }}>
-                  {/* 그룹 헤더 */}
+                <div key={region.name}>
+                  {/* 지역 헤더 */}
                   <button
-                    onClick={() => {
-                      if (isMulti) {
-                        setExpandedGroup(isExpanded ? null : group.name);
-                      } else {
-                        handleSelectPin(group.pins[0]);
-                      }
-                    }}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-50 transition-all ${
-                      isSingleSelected ? "bg-blue-50 border-l-[3px] border-l-blue-500" :
-                      isExpanded ? "bg-gray-50" : "hover:bg-gray-50"
+                    onClick={() => handleRegionClick(region.name)}
+                    className={`w-full text-left px-4 py-3 border-b border-gray-100 transition-all ${
+                      isRegionExpanded ? "bg-blue-50/50 sticky top-0 z-10" : "hover:bg-gray-50"
                     }`}
                   >
-                    <div className="flex items-start gap-2">
-                      <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${recruitDot[group.recruitStatus]}`} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className={`text-[10px] px-1.5 py-0 rounded border font-medium ${recruitBadge[group.recruitStatus]}`}>
-                            {group.recruitStatus}
-                          </span>
-                          <span className="text-[10px] text-gray-400">{group.subType || group.type}</span>
-                        </div>
-                        <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">{group.name}</p>
-                        {!isMulti && group.pins[0].complexName && (
-                          <p className="text-[11px] text-gray-500 mt-0.5">{group.pins[0].complexName}</p>
-                        )}
-                        {!isMulti && group.pins[0].extra && (
-                          <p className="text-[11px] text-blue-600 mt-0.5 font-medium">{group.pins[0].extra}</p>
-                        )}
-                        <p className="text-[10px] text-gray-400 mt-0.5">모집 {group.date}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📍</span>
+                        <span className="text-[14px] font-bold text-gray-900">{shortRegion(region.name)}</span>
+                        <span className="text-[11px] text-gray-400">{region.name}</span>
                       </div>
-                      {isMulti && (
-                        <div className="shrink-0 flex items-center gap-1">
-                          <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
-                            {group.pins.length}단지
+                      <div className="flex items-center gap-2">
+                        {region.recruiting > 0 && (
+                          <span className="text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-medium">
+                            모집중 {region.recruiting}
                           </span>
-                          <svg className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
-                      )}
+                        )}
+                        <span className="text-[11px] text-gray-400">{region.total}건</span>
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${isRegionExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                   </button>
 
-                  {/* 펼쳐진 단지 목록 */}
-                  {isMulti && isExpanded && (
-                    <div className="bg-gray-50/50">
-                      {group.pins.map((pin) => (
+                  {/* 지역 내 공고 목록 */}
+                  {isRegionExpanded && region.announcements.map((ann) => {
+                    const isMulti = ann.pins.length > 1;
+                    const isAnnExpanded = expandedAnnouncement === ann.name;
+
+                    return (
+                      <div key={ann.name} className="bg-gray-50/30">
+                        {/* 공고 헤더 */}
                         <button
-                          key={pin.id}
-                          ref={(el) => { if (el) itemRefs.current.set(pin.id, el); }}
-                          onClick={() => handleSelectPin(pin)}
-                          className={`w-full text-left pl-9 pr-4 py-2.5 border-b border-gray-100 transition-all ${
-                            selectedPin?.id === pin.id ? "bg-blue-50 border-l-[3px] border-l-blue-500" : "hover:bg-blue-50/50"
+                          onClick={() => {
+                            if (isMulti) {
+                              setExpandedAnnouncement(isAnnExpanded ? null : ann.name);
+                            } else {
+                              handleSelectPin(ann.pins[0]);
+                            }
+                          }}
+                          className={`w-full text-left pl-8 pr-4 py-2.5 border-b border-gray-100 transition-all ${
+                            !isMulti && selectedPin?.id === ann.pins[0].id ? "bg-blue-50 border-l-[3px] border-l-blue-500" :
+                            isAnnExpanded ? "bg-white" : "hover:bg-white"
                           }`}
                         >
-                          <p className="text-[12px] font-medium text-gray-800">{pin.complexName || pin.address}</p>
-                          <p className="text-[11px] text-gray-400 truncate">📍 {pin.address}</p>
-                          {pin.extra && <p className="text-[11px] text-blue-600 font-medium">{pin.extra}</p>}
+                          <div className="flex items-start gap-2">
+                            <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${recruitDot[ann.recruitStatus]}`} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className={`text-[9px] px-1.5 rounded border font-medium ${recruitBadge[ann.recruitStatus]}`}>{ann.recruitStatus}</span>
+                                <span className="text-[10px] text-gray-400">{ann.subType || ann.type}</span>
+                              </div>
+                              <p className="text-[12px] font-semibold text-gray-800 leading-snug line-clamp-2">{ann.name}</p>
+                              {!isMulti && ann.pins[0].extra && (
+                                <p className="text-[11px] text-blue-600 mt-0.5 font-medium">{ann.pins[0].extra}</p>
+                              )}
+                              <p className="text-[10px] text-gray-400 mt-0.5">모집 {ann.date}</p>
+                            </div>
+                            {isMulti && (
+                              <div className="shrink-0 flex items-center gap-1 mt-1">
+                                <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full font-medium">{ann.pins.length}단지</span>
+                                <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isAnnExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
                         </button>
-                      ))}
-                    </div>
-                  )}
+
+                        {/* 단지 목록 */}
+                        {isMulti && isAnnExpanded && ann.pins.map((pin) => (
+                          <button
+                            key={pin.id}
+                            ref={(el) => { if (el) itemRefs.current.set(pin.id, el); }}
+                            onClick={() => handleSelectPin(pin)}
+                            className={`w-full text-left pl-14 pr-4 py-2 border-b border-gray-100 transition-all ${
+                              selectedPin?.id === pin.id ? "bg-blue-50 border-l-[3px] border-l-blue-500" : "hover:bg-blue-50/50"
+                            }`}
+                          >
+                            <p className="text-[12px] font-medium text-gray-700">{pin.complexName || "단지"}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{pin.address}</p>
+                            {pin.extra && <p className="text-[10px] text-blue-600 font-medium">{pin.extra}</p>}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
-            {groups.length === 0 && (
+
+            {regionGroups.length === 0 && (
               <div className="flex flex-col items-center justify-center h-40 text-sm text-gray-400">
                 <p>조건에 맞는 공고가 없습니다</p>
                 <button onClick={clearFilters} className="mt-2 text-blue-500 text-xs">필터 초기화</button>
@@ -306,15 +361,13 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
       {/* 현재위치 */}
       <button onClick={handleMyLocation}
         className="absolute z-10 bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-50 bottom-6"
-        style={{ left: panelOpen ? "min(calc(85vw + 16px), 396px)" : "16px" }}
-        title="내 위치"
+        style={{ left: panelOpen ? "min(calc(85vw + 16px), 396px)" : "16px" }} title="내 위치"
       >
         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3" strokeWidth={2} /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4m10-10h-4M6 12H2" />
         </svg>
       </button>
 
-      {/* 디테일 패널 */}
       <DetailPanel pin={selectedPin} onClose={() => setSelectedPin(null)} />
     </div>
   );

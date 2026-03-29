@@ -57,20 +57,26 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function Kakao
   pinsRef.current = pins;
 
   useImperativeHandle(ref, () => ({
-    flyToPin(pin: MapPin) {
+    flyToPin(pin: MapPin & { _level?: number }) {
       const map = mapInstanceRef.current;
       if (!map || !window.kakao?.maps) return;
       const { kakao } = window;
       const target = new kakao.maps.LatLng(pin.lat, pin.lng);
+      const targetLevel = (pin as any)._level;
 
-      // 현재 레벨이 7 이상이면 먼저 줌인
-      const currentLevel = map.getLevel();
-      if (currentLevel > 6) {
-        map.setLevel(5, { animate: true });
-        // 줌 애니메이션 후 부드럽게 이동
-        setTimeout(() => map.panTo(target), 300);
+      if (targetLevel) {
+        // 지역 이동: 특정 줌 레벨로
+        map.setLevel(targetLevel, { animate: true });
+        setTimeout(() => map.panTo(target), 200);
       } else {
-        map.panTo(target);
+        // 단지 이동: 줌인 후 이동
+        const currentLevel = map.getLevel();
+        if (currentLevel > 6) {
+          map.setLevel(5, { animate: true });
+          setTimeout(() => map.panTo(target), 300);
+        } else {
+          map.panTo(target);
+        }
       }
     },
   }));
