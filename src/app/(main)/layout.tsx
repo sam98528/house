@@ -6,8 +6,8 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-full">
-      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+    <div className="flex flex-col h-full min-h-dvh">
+      <main className="flex-1 flex flex-col">{children}</main>
       <BottomNav />
     </div>
   );

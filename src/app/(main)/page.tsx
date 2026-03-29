@@ -70,7 +70,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   const items = announcements ?? [];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-20 md:pb-6">
       <header className="mb-4">
         <h1 className="text-2xl font-bold">청약하우스</h1>
         <p className="text-gray-500 text-sm mt-1">

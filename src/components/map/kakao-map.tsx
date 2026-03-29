@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 declare global {
   interface Window {
     kakao: any;
-    kakaoMapLoaded?: boolean;
   }
 }
 
@@ -34,41 +33,32 @@ export function KakaoMap({
   pins = [],
   center = { lat: 36.5, lng: 127.5 },
   level = 13,
-  className = "w-full h-[500px] rounded-lg border",
+  className = "w-full h-full",
   onPinClick,
 }: KakaoMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const overlayRef = useRef<any>(null);
+  const onPinClickRef = useRef(onPinClick);
+  onPinClickRef.current = onPinClick;
 
-  const initMap = useCallback(() => {
-    if (!mapRef.current || !window.kakao?.maps) return;
-
-    const { kakao } = window;
-    const mapOption = {
-      center: new kakao.maps.LatLng(center.lat, center.lng),
-      level,
-    };
-
-    const map = new kakao.maps.Map(mapRef.current, mapOption);
-    mapInstanceRef.current = map;
-
-  }, [center, level]);
-
-  // center/level 변경 시 지도 이동
+  // SDK 로드 + 지도 초기화 (한 번만)
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map || !window.kakao?.maps) return;
-    const { kakao } = window;
-    map.setCenter(new kakao.maps.LatLng(center.lat, center.lng));
-    map.setLevel(level);
-  }, [center, level]);
+    function init() {
+      if (!mapRef.current || !window.kakao?.maps) return;
+      if (mapInstanceRef.current) return;
 
-  // SDK 로드
-  useEffect(() => {
+      const { kakao } = window;
+      const map = new kakao.maps.Map(mapRef.current, {
+        center: new kakao.maps.LatLng(36.5, 127.5),
+        level: 13,
+      });
+      mapInstanceRef.current = map;
+    }
+
     if (window.kakao?.maps) {
-      if (!mapInstanceRef.current) initMap();
+      init();
       return;
     }
 
@@ -76,10 +66,19 @@ export function KakaoMap({
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false&libraries=clusterer`;
     script.async = true;
     script.onload = () => {
-      window.kakao.maps.load(() => initMap());
+      window.kakao.maps.load(() => init());
     };
     document.head.appendChild(script);
-  }, [initMap]);
+  }, []);
+
+  // center/level 변경 시 지도 이동
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !window.kakao?.maps) return;
+    const { kakao } = window;
+    map.panTo(new kakao.maps.LatLng(center.lat, center.lng));
+    map.setLevel(level, { animate: true });
+  }, [center.lat, center.lng, level]);
 
   // 핀 업데이트
   useEffect(() => {
@@ -106,19 +105,14 @@ export function KakaoMap({
       const position = new kakao.maps.LatLng(pin.lat, pin.lng);
       const color = statusColor[pin.status || ""] || "#3B82F6";
 
-      const marker = new kakao.maps.Marker({
-        map,
-        position,
-        title: pin.title,
-      });
+      const marker = new kakao.maps.Marker({ map, position, title: pin.title });
 
-      // 클릭 → 커스텀 오버레이
       kakao.maps.event.addListener(marker, "click", () => {
         if (overlayRef.current) overlayRef.current.setMap(null);
 
         const content = document.createElement("div");
         content.innerHTML = `
-          <div style="background:white;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:14px;min-width:240px;max-width:300px;font-family:sans-serif;">
+          <div style="position:relative;background:white;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:14px;min-width:240px;max-width:300px;font-family:sans-serif;">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
               <span style="background:${color};color:white;font-size:11px;padding:2px 8px;border-radius:10px;">${pin.status || ""}</span>
               <span style="font-size:11px;color:#666;">${pin.type || ""}${pin.subType ? " · " + pin.subType : ""}</span>
@@ -126,7 +120,7 @@ export function KakaoMap({
             <div style="font-size:14px;font-weight:600;line-height:1.4;margin-bottom:6px;">${pin.title}</div>
             ${pin.date ? `<div style="font-size:11px;color:#999;">${pin.date}</div>` : ""}
             ${pin.url ? `<a href="${pin.url}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;font-size:12px;color:#3B82F6;text-decoration:none;">공고 상세보기 →</a>` : ""}
-            <div style="position:absolute;top:8px;right:8px;cursor:pointer;font-size:16px;color:#ccc;" id="close-overlay">✕</div>
+            <div style="position:absolute;top:8px;right:10px;cursor:pointer;font-size:16px;color:#aaa;line-height:1;" id="close-overlay">✕</div>
           </div>
         `;
 
@@ -144,24 +138,12 @@ export function KakaoMap({
         overlayRef.current = overlay;
         map.panTo(position);
 
-        if (onPinClick) onPinClick(pin);
+        if (onPinClickRef.current) onPinClickRef.current(pin);
       });
 
       markersRef.current.push(marker);
     });
-
-    // 핀이 여러 개면 bounds 맞추기
-    if (pins.length > 1) {
-      const bounds = new kakao.maps.LatLngBounds();
-      pins.forEach((pin) => {
-        bounds.extend(new kakao.maps.LatLng(pin.lat, pin.lng));
-      });
-      map.setBounds(bounds);
-    } else if (pins.length === 1) {
-      map.setCenter(new kakao.maps.LatLng(pins[0].lat, pins[0].lng));
-      map.setLevel(5);
-    }
-  }, [pins, onPinClick]);
+  }, [pins]);
 
   return <div ref={mapRef} className={className} />;
 }

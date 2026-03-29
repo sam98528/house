@@ -50,7 +50,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   }, []);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] relative overflow-hidden">
+    <div className="flex h-dvh relative overflow-hidden">
       {/* 사이드 패널 */}
       <div
         className={`
