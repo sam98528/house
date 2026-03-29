@@ -19,17 +19,20 @@ function getRecruitStatus(beginDe: string, endDe: string): "모집중" | "모집
 }
 
 export default async function HomePage() {
+  // 전체 공고 가져오기 (좌표 없는 것 포함)
   const { data: announcements } = await supabase
     .from("announcements")
     .select("*")
-    .not("lat", "is", null)
-    .not("lng", "is", null)
     .order("rcrit_pblanc_de", { ascending: false });
 
   const items = announcements ?? [];
 
   const pins: MapPin[] = items.map((item) => {
     const recruitStatus = getRecruitStatus(item.begin_de, item.end_de);
+    const isSale = item.source === "sale";
+
+    // 공급유형: 임대는 suply_ty_nm, 분양은 "공공분양"
+    const subType = isSale ? "공공분양" : (item.suply_ty_nm || "공공임대");
 
     return {
       id: item.id,
@@ -38,12 +41,12 @@ export default async function HomePage() {
       title: item.pblanc_nm,
       status: item.sttus_nm,
       recruitStatus,
-      type: item.source === "sale" ? "공공분양" : "공공임대",
-      subType: item.suply_ty_nm || item.house_ty_nm,
-      region: `${item.brtc_nm} ${item.signgu_nm}`,
-      brtcNm: item.brtc_nm,
-      address: item.full_adres || `${item.brtc_nm} ${item.signgu_nm}`,
-      complexName: item.hsmp_nm,
+      type: isSale ? "공공분양" : "공공임대",
+      subType,
+      region: [item.brtc_nm, item.signgu_nm].filter(Boolean).join(" ") || "전국",
+      brtcNm: item.brtc_nm || "전국",
+      address: item.full_adres?.trim() || null,
+      complexName: item.hsmp_nm || null,
       date: `${formatDate(item.begin_de)} ~ ${formatDate(item.end_de)}`,
       url: item.mobile_url || item.pc_url || item.detail_url || undefined,
       extra:
@@ -60,6 +63,7 @@ export default async function HomePage() {
       announceDe: item.rcrit_pblanc_de ? formatDate(item.rcrit_pblanc_de) : undefined,
       winnerDe: item.przwner_presnatn_de ? formatDate(item.przwner_presnatn_de) : undefined,
       heatMethod: item.heat_mthd_nm || undefined,
+      hasCoords: item.lat != null && item.lng != null,
     };
   });
 

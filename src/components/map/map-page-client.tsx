@@ -5,7 +5,7 @@ import { KakaoMap, type MapPin, type KakaoMapHandle } from "./kakao-map";
 import { DetailPanel } from "./detail-panel";
 
 const RECRUIT_OPTIONS = ["전체", "모집중", "모집예정", "모집완료"] as const;
-const SUPPLY_TYPES = ["국민임대","매입임대","영구임대","전세임대","행복주택","10년임대","50년임대","공공지원민간임대주택"];
+const SUPPLY_TYPES = ["국민임대","매입임대","영구임대","전세임대","행복주택","10년임대","50년임대","공공지원민간임대주택","공공분양","공공임대"];
 const shortRegion = (r: string) => r.replace(/특별자치도|특별자치시|광역시|특별시/g, "").replace(/도$/, "");
 
 const recruitDot: Record<string, string> = { 모집중: "bg-green-500", 모집예정: "bg-blue-400", 모집완료: "bg-gray-300" };
@@ -140,8 +140,10 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
     setSelectedPin(pin);
     setPanelOpen(true);
     mapHandleRef.current?.clearRegionBorder();
-    mapHandleRef.current?.highlightPin(pin.id);
-    setTimeout(() => mapHandleRef.current?.flyToPin(pin), 50);
+    if (pin.hasCoords !== false && pin.lat && pin.lng) {
+      mapHandleRef.current?.highlightPin(pin.id);
+      setTimeout(() => mapHandleRef.current?.flyToPin(pin), 50);
+    }
   }, []);
 
   const handleMapPinClick = useCallback((pin: MapPin) => {
@@ -327,7 +329,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                             }`}
                           >
                             <p className="text-[12px] font-medium text-gray-700">{pin.complexName || "단지"}</p>
-                            <p className="text-[10px] text-gray-400 truncate">{pin.address}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{pin.address || "📍 전국"}</p>
                             {pin.extra && <p className="text-[10px] text-blue-600 font-medium">{pin.extra}</p>}
                           </button>
                         ))}
