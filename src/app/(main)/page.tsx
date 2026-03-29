@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -6,55 +7,42 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Link from "next/link";
 
-// 임시 데이터 - 추후 Supabase에서 가져올 예정
-const mockAnnouncements = [
-  {
-    id: "1",
-    title: "서울 강서구 마곡지구 A-1블록 국민임대주택",
-    regionSido: "서울특별시",
-    regionSigungu: "강서구",
-    supplyType: "임대" as const,
-    supplyMethod: "일반공급" as const,
-    unitCount: 320,
-    applyStartDate: "2026-04-01",
-    applyEndDate: "2026-04-15",
-    status: "접수예정" as const,
-  },
-  {
-    id: "2",
-    title: "경기도 화성시 동탄2 A-95블록 행복주택",
-    regionSido: "경기도",
-    regionSigungu: "화성시",
-    supplyType: "임대" as const,
-    supplyMethod: "특별공급" as const,
-    unitCount: 150,
-    applyStartDate: "2026-03-25",
-    applyEndDate: "2026-04-05",
-    status: "접수중" as const,
-  },
-  {
-    id: "3",
-    title: "인천 미추홀구 주안역 공공분양",
-    regionSido: "인천광역시",
-    regionSigungu: "미추홀구",
-    supplyType: "분양" as const,
-    supplyMethod: "일반공급" as const,
-    unitCount: 480,
-    applyStartDate: "2026-03-20",
-    applyEndDate: "2026-03-28",
-    status: "마감" as const,
-  },
-];
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const statusColor: Record<string, string> = {
-  접수예정: "bg-yellow-100 text-yellow-800",
+  공고중: "bg-blue-100 text-blue-800",
   접수중: "bg-green-100 text-green-800",
-  마감: "bg-gray-100 text-gray-600",
-  당첨발표: "bg-blue-100 text-blue-800",
+  접수마감: "bg-gray-100 text-gray-600",
+  상담요청: "bg-yellow-100 text-yellow-800",
+  정정공고중: "bg-orange-100 text-orange-800",
 };
 
-export default function HomePage() {
+const typeEmoji: Record<string, string> = {
+  분양주택: "🏠",
+  임대주택: "🏢",
+  "공공분양(신혼희망)": "💒",
+  토지: "🌍",
+  상가: "🏪",
+  주거복지: "🏘️",
+};
+
+export const revalidate = 3600; // 1시간마다 재생성
+
+export default async function HomePage() {
+  const { data: announcements, error } = await supabase
+    .from("announcements")
+    .select("*")
+    .order("pan_nt_st_dt", { ascending: false })
+    .limit(50);
+
+  const items = announcements ?? [];
+  const hasData = items.length > 0;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <header className="mb-6">
@@ -64,62 +52,81 @@ export default function HomePage() {
         </p>
       </header>
 
-      {/* 필터 영역 - 추후 구현 */}
+      {/* 필터 칩 */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
         <Badge variant="secondary" className="whitespace-nowrap cursor-pointer">
-          전체 지역
+          전체
         </Badge>
         <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
-          분양
+          🏠 분양주택
         </Badge>
         <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
-          임대
+          🏢 임대주택
+        </Badge>
+        <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
+          💒 신혼희망타운
         </Badge>
         <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
           접수중
         </Badge>
       </div>
 
+      {!hasData && (
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-lg mb-2">공고 데이터가 없습니다</p>
+          <p className="text-sm">
+            <Link href="/api/sync" className="text-blue-500 underline">
+              /api/sync
+            </Link>
+            를 호출하여 데이터를 동기화하세요
+          </p>
+        </div>
+      )}
+
       {/* 공고 목록 */}
       <div className="space-y-3">
-        {mockAnnouncements.map((item) => (
-          <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-base leading-tight">
-                  {item.title}
-                </CardTitle>
-                <Badge
-                  className={cn(
-                    "shrink-0 text-xs",
-                    statusColor[item.status]
+        {items.map((item) => (
+          <a
+            key={item.id}
+            href={item.dtl_url_mob || item.dtl_url || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Card className="cursor-pointer hover:shadow-md transition-shadow mb-3">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-base leading-tight">
+                    {typeEmoji[item.upp_ais_tp_nm] || "📋"}{" "}
+                    {item.pan_nm}
+                  </CardTitle>
+                  <Badge
+                    className={`shrink-0 text-xs ${statusColor[item.pan_ss] || "bg-gray-100 text-gray-600"}`}
+                  >
+                    {item.pan_ss}
+                  </Badge>
+                </div>
+                <CardDescription className="text-xs">
+                  {item.cnp_cd_nm}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <span>{item.upp_ais_tp_nm}</span>
+                  {item.ais_tp_cd_nm && (
+                    <>
+                      <span>·</span>
+                      <span>{item.ais_tp_cd_nm}</span>
+                    </>
                   )}
-                >
-                  {item.status}
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                {item.regionSido} {item.regionSigungu}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span>
-                  {item.supplyType} · {item.supplyMethod}
-                </span>
-                <span>{item.unitCount}세대</span>
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                {item.applyStartDate} ~ {item.applyEndDate}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {item.pan_nt_st_dt} ~ {item.clsg_dt}
+                </div>
+              </CardContent>
+            </Card>
+          </a>
         ))}
       </div>
     </div>
   );
-}
-
-function cn(...classes: (string | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
 }
