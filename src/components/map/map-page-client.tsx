@@ -5,7 +5,7 @@ import { KakaoMap, type MapPin, type KakaoMapHandle } from "./kakao-map";
 import { DetailPanel } from "./detail-panel";
 
 const RECRUIT_OPTIONS = ["전체", "접수중", "접수예정"] as const;
-const SUPPLY_TYPES = ["국민임대","매입임대","영구임대","전세임대","행복주택","10년임대","50년임대","공공지원민간임대주택","공공분양","공공임대"];
+const SUPPLY_TYPES = ["국민임대", "매입임대", "영구임대", "전세임대", "행복주택", "10년임대", "50년임대", "공공지원민간임대주택", "공공분양", "공공임대"];
 const shortRegion = (r: string) => r.replace(/특별자치도|특별자치시|광역시|특별시/g, "").replace(/도$/, "");
 
 const recruitDot: Record<string, string> = { 접수중: "bg-green-500", 접수예정: "bg-blue-400", 접수완료: "bg-gray-300" };
@@ -251,18 +251,13 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                   {/* 지역 헤더 */}
                   <button
                     onClick={() => handleRegionClick(region.name)}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-100 transition-all ${
-                      isRegionExpanded ? "bg-blue-50/50 sticky top-0 z-10" : "hover:bg-gray-50"
-                    }`}
+                    className={`w-full text-left px-4 py-3 border-b border-gray-100 transition-all ${isRegionExpanded ? "bg-blue-50/50 sticky top-0 z-10" : "hover:bg-gray-50"
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[15px] font-bold text-gray-900">{region.name}</span>
                       <div className="flex items-center gap-2">
-                        {region.recruiting > 0 && (
-                          <span className="text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-medium">
-                            접수중 {region.recruiting}
-                          </span>
-                        )}
+
                         <span className="text-[11px] text-gray-400">{region.total}건</span>
                         <svg className={`w-4 h-4 text-gray-400 transition-transform ${isRegionExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -287,10 +282,9 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                               handleSelectPin(ann.pins[0]);
                             }
                           }}
-                          className={`w-full text-left pl-8 pr-4 py-2.5 border-b border-gray-100 transition-all ${
-                            !isMulti && selectedPin?.id === ann.pins[0].id ? "bg-blue-50 border-l-[3px] border-l-blue-500" :
+                          className={`w-full text-left pl-8 pr-4 py-2.5 border-b border-gray-100 transition-all ${!isMulti && selectedPin?.id === ann.pins[0].id ? "bg-blue-50 border-l-[3px] border-l-blue-500" :
                             isAnnExpanded ? "bg-white" : "hover:bg-white"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start gap-2">
                             <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${recruitDot[ann.recruitStatus]}`} />
@@ -322,9 +316,8 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                             key={pin.id}
                             ref={(el) => { if (el) itemRefs.current.set(pin.id, el); }}
                             onClick={() => handleSelectPin(pin)}
-                            className={`w-full text-left pl-14 pr-4 py-2 border-b border-gray-100 transition-all ${
-                              selectedPin?.id === pin.id ? "bg-blue-50 border-l-[3px] border-l-blue-500" : "hover:bg-blue-50/50"
-                            }`}
+                            className={`w-full text-left pl-14 pr-4 py-2 border-b border-gray-100 transition-all ${selectedPin?.id === pin.id ? "bg-blue-50 border-l-[3px] border-l-blue-500" : "hover:bg-blue-50/50"
+                              }`}
                           >
                             <p className="text-[12px] font-medium text-gray-700">{pin.complexName || "단지"}</p>
                             <p className="text-[10px] text-gray-400 truncate">{pin.address || "📍 전국"}</p>

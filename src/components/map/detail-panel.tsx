@@ -57,8 +57,8 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
     >
       {/* 카운터 */}
       {regionPins.length > 1 && (
-        <div className="hidden md:flex justify-center pb-2 text-[11px] text-white/80">
-          <span className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full">
+        <div className="hidden md:flex justify-center pb-2 text-[11px] text-black/80">
+          <span className="bg-white/40 backdrop-blur-sm px-3 py-1 rounded-full">
             {pin.brtcNm} {currentIndex + 1} / {regionPins.length}
           </span>
         </div>
@@ -70,9 +70,8 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
           <button
             onClick={goPrev}
             disabled={!hasPrev}
-            className={`hidden md:flex items-center justify-center w-11 h-11 rounded-full shrink-0 transition-all ${
-              hasPrev ? "bg-white shadow-lg text-gray-600 hover:text-blue-600 hover:scale-110 active:scale-95" : "bg-white/40 text-gray-300 cursor-default"
-            }`}
+            className={`hidden md:flex items-center justify-center w-11 h-11 rounded-full shrink-0 transition-all ${hasPrev ? "bg-white shadow-lg text-gray-600 hover:text-blue-600 hover:scale-110 active:scale-95" : "bg-white/40 text-gray-300 cursor-default"
+              }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -97,10 +96,9 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
                   </span>
                   {pin.subType && <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{pin.subType}</span>}
                   {pin.recruitStatus && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                      pin.recruitStatus === "접수중" ? "text-green-700 bg-green-50" :
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${pin.recruitStatus === "접수중" ? "text-green-700 bg-green-50" :
                       pin.recruitStatus === "접수예정" ? "text-blue-600 bg-blue-50" : "text-gray-500 bg-gray-100"
-                    }`}>{pin.recruitStatus}</span>
+                      }`}>{pin.recruitStatus}</span>
                   )}
                   {pin.status === "정정공고" && <span className="text-[10px] px-2 py-0.5 rounded-full text-orange-600 bg-orange-50">정정</span>}
                 </div>
@@ -178,9 +176,8 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
           <button
             onClick={goNext}
             disabled={!hasNext}
-            className={`hidden md:flex items-center justify-center w-11 h-11 rounded-full shrink-0 transition-all ${
-              hasNext ? "bg-white shadow-lg text-gray-600 hover:text-blue-600 hover:scale-110 active:scale-95" : "bg-white/40 text-gray-300 cursor-default"
-            }`}
+            className={`hidden md:flex items-center justify-center w-11 h-11 rounded-full shrink-0 transition-all ${hasNext ? "bg-white shadow-lg text-gray-600 hover:text-blue-600 hover:scale-110 active:scale-95" : "bg-white/40 text-gray-300 cursor-default"
+              }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
