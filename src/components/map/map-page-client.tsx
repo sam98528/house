@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { KakaoMap, type MapPin, type KakaoMapHandle } from "./kakao-map";
 import { DetailPanel } from "./detail-panel";
 
-const RECRUIT_OPTIONS = ["전체", "모집중", "모집예정", "모집완료"] as const;
+const RECRUIT_OPTIONS = ["전체", "모집중", "모집예정"] as const;
 const SUPPLY_TYPES = ["국민임대","매입임대","영구임대","전세임대","행복주택","10년임대","50년임대","공공지원민간임대주택","공공분양","공공임대"];
 const shortRegion = (r: string) => r.replace(/특별자치도|특별자치시|광역시|특별시/g, "").replace(/도$/, "");
 
@@ -54,7 +54,7 @@ interface AnnouncementGroup {
 
 export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const [search, setSearch] = useState("");
-  const [recruitFilter, setRecruitFilter] = useState<string>("모집중");
+  const [recruitFilter, setRecruitFilter] = useState<string>("전체");
   const [typeFilter, setTypeFilter] = useState<string>("전체");
   const [supplyFilter, setSupplyFilter] = useState<string>("전체");
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
@@ -66,8 +66,8 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { 전체: pins.length, 모집중: 0, 모집예정: 0, 모집완료: 0 };
-    pins.forEach((p) => { c[p.recruitStatus || "모집완료"]++; });
+    const c: Record<string, number> = { 전체: pins.length, 모집중: 0, 모집예정: 0 };
+    pins.forEach((p) => { if (p.recruitStatus === "모집중") c["모집중"]++; else c["모집예정"]++; });
     return c;
   }, [pins]);
 
@@ -174,7 +174,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setSearch(""); setRecruitFilter("모집중"); setTypeFilter("전체"); setSupplyFilter("전체");
+    setSearch(""); setRecruitFilter("전체"); setTypeFilter("전체"); setSupplyFilter("전체");
   }, []);
 
   const hasCustomFilters = search || typeFilter !== "전체" || supplyFilter !== "전체";
