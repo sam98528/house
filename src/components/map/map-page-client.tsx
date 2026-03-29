@@ -254,10 +254,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[22px] font-black text-gray-900 leading-none">{shortRegion(region.name)}</span>
-                        <span className="text-[10px] text-gray-400 mt-1">{region.name}</span>
-                      </div>
+                      <span className="text-[15px] font-bold text-gray-900">{region.name}</span>
                       <div className="flex items-center gap-2">
                         {region.recruiting > 0 && (
                           <span className="text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-medium">
