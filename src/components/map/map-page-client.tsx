@@ -139,6 +139,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const handleSelectPin = useCallback((pin: MapPin) => {
     setSelectedPin(pin);
     setPanelOpen(true);
+    mapHandleRef.current?.clearRegionBorder();
     setTimeout(() => mapHandleRef.current?.flyToPin(pin), 50);
   }, []);
 
@@ -154,10 +155,10 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
     setExpandedRegion(isExpanding ? regionName : null);
     if (isExpanding) {
       setExpandedAnnouncement(null);
-      const center = REGION_CENTER[regionName];
-      if (center) {
-        mapHandleRef.current?.flyToPin({ id: "_region", lat: center.lat, lng: center.lng, title: "", _level: center.level } as any);
-      }
+      // 폴리곤 경계 표시 + 지도 이동
+      mapHandleRef.current?.showRegionBorder(regionName);
+    } else {
+      mapHandleRef.current?.clearRegionBorder();
     }
   }, [expandedRegion]);
 
@@ -254,9 +255,8 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-base">📍</span>
-                        <span className="text-[14px] font-bold text-gray-900">{shortRegion(region.name)}</span>
-                        <span className="text-[11px] text-gray-400">{region.name}</span>
+                        <span className="text-[22px] font-black text-gray-900 leading-none">{shortRegion(region.name)}</span>
+                        <span className="text-[10px] text-gray-400 mt-1">{region.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {region.recruiting > 0 && (
