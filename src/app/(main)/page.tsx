@@ -31,7 +31,7 @@ export default async function HomePage() {
     region: `${item.brtc_nm} ${item.signgu_nm}`,
     address: item.full_adres || `${item.brtc_nm} ${item.signgu_nm}`,
     complexName: item.hsmp_nm,
-    date: `모집 ${formatDate(item.begin_de)} ~ ${formatDate(item.end_de)}`,
+    date: `${formatDate(item.begin_de)} ~ ${formatDate(item.end_de)}`,
     url: item.mobile_url || item.pc_url || item.detail_url || undefined,
     extra:
       item.rent_gtn > 0
@@ -39,6 +39,14 @@ export default async function HomePage() {
         : item.sum_suply_co
           ? `${item.sum_suply_co}호 공급`
           : undefined,
+    supplyCount: item.sum_suply_co || undefined,
+    rentDeposit: item.rent_gtn > 0 ? formatWon(item.rent_gtn) : undefined,
+    monthlyRent: item.mt_rntchrg > 0 ? formatWon(item.mt_rntchrg) : undefined,
+    supplyOrg: item.suply_instt_nm || undefined,
+    houseType: item.house_ty_nm || undefined,
+    announceDe: item.rcrit_pblanc_de ? formatDate(item.rcrit_pblanc_de) : undefined,
+    winnerDe: item.przwner_presnatn_de ? formatDate(item.przwner_presnatn_de) : undefined,
+    heatMethod: item.heat_mthd_nm || undefined,
   }));
 
   return <MapPageClient pins={pins} />;
