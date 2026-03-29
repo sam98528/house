@@ -5,7 +5,7 @@ import { type MapPin } from "./kakao-map";
 
 interface DetailPanelProps {
   pin: MapPin | null;
-  visiblePins: MapPin[];
+  regionPins: MapPin[];
   onSelect: (pin: MapPin) => void;
   onClose: () => void;
 }
@@ -23,7 +23,7 @@ function InfoItem({ icon, label, value }: { icon: string; label: string; value?:
   );
 }
 
-export function DetailPanel({ pin, visiblePins, onSelect, onClose }: DetailPanelProps) {
+export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -31,22 +31,16 @@ export function DetailPanel({ pin, visiblePins, onSelect, onClose }: DetailPanel
     else setVisible(false);
   }, [pin]);
 
-  // 현재 핀의 visible 목록 내 인덱스
   const currentIndex = useMemo(() => {
     if (!pin) return -1;
-    return visiblePins.findIndex(p => p.id === pin.id);
-  }, [pin, visiblePins]);
+    return regionPins.findIndex(p => p.id === pin.id);
+  }, [pin, regionPins]);
 
   const hasPrev = currentIndex > 0;
-  const hasNext = currentIndex >= 0 && currentIndex < visiblePins.length - 1;
-  const total = visiblePins.length;
+  const hasNext = currentIndex >= 0 && currentIndex < regionPins.length - 1;
 
-  const goPrev = () => {
-    if (hasPrev) onSelect(visiblePins[currentIndex - 1]);
-  };
-  const goNext = () => {
-    if (hasNext) onSelect(visiblePins[currentIndex + 1]);
-  };
+  const goPrev = () => { if (hasPrev) onSelect(regionPins[currentIndex - 1]); };
+  const goNext = () => { if (hasNext) onSelect(regionPins[currentIndex + 1]); };
 
   if (!pin) return null;
 
@@ -61,44 +55,13 @@ export function DetailPanel({ pin, visiblePins, onSelect, onClose }: DetailPanel
         ${visible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
       `}
     >
-      {/* 이전/다음 네비게이션 */}
-      {total > 1 && (
-        <div className="flex items-center justify-between px-2 mb-2">
-          <button
-            onClick={goPrev}
-            disabled={!hasPrev}
-            className={`w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-lg transition-all ${
-              hasPrev ? "hover:bg-gray-50 text-gray-700" : "opacity-30 cursor-default"
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <span className="text-[11px] text-white bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
-            {currentIndex + 1} / {total}
-          </span>
-          <button
-            onClick={goNext}
-            disabled={!hasNext}
-            className={`w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-lg transition-all ${
-              hasNext ? "hover:bg-gray-50 text-gray-700" : "opacity-30 cursor-default"
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      )}
-
       <div className="bg-white md:rounded-2xl shadow-2xl border border-gray-200/80 overflow-hidden flex flex-col max-h-[60vh] md:max-h-[70vh]">
         {/* 모바일 핸들 */}
         <div className="flex justify-center pt-2 pb-0.5 md:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-300" />
         </div>
 
-        {/* 헤더 */}
+        {/* 헤더 + 네비게이션 */}
         <div className="px-5 pt-3 pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -106,23 +69,38 @@ export function DetailPanel({ pin, visiblePins, onSelect, onClose }: DetailPanel
                 <span className={`text-[10px] text-white px-2 py-0.5 rounded-full font-medium ${isSale ? "bg-emerald-500" : "bg-blue-500"}`}>
                   {pin.type}
                 </span>
-                {pin.subType && (
-                  <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{pin.subType}</span>
-                )}
+                {pin.subType && <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{pin.subType}</span>}
                 {pin.recruitStatus && (
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                     pin.recruitStatus === "모집중" ? "text-green-700 bg-green-50" :
                     pin.recruitStatus === "모집예정" ? "text-blue-600 bg-blue-50" : "text-gray-500 bg-gray-100"
                   }`}>{pin.recruitStatus}</span>
                 )}
-                {pin.status === "정정공고" && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full text-orange-600 bg-orange-50">정정</span>
-                )}
+                {pin.status === "정정공고" && <span className="text-[10px] px-2 py-0.5 rounded-full text-orange-600 bg-orange-50">정정</span>}
               </div>
               <h2 className="text-[15px] font-bold text-gray-900 leading-snug">{pin.title}</h2>
             </div>
             <button onClick={onClose} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">✕</button>
           </div>
+
+          {/* 지역 내 이전/다음 — 헤더 안쪽 */}
+          {regionPins.length > 1 && (
+            <div className="flex items-center justify-between mt-3 bg-gray-50 rounded-lg px-2 py-1.5">
+              <button onClick={goPrev} disabled={!hasPrev}
+                className={`flex items-center gap-1 text-[11px] transition-colors ${hasPrev ? "text-gray-700 hover:text-blue-600" : "text-gray-300"}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                이전
+              </button>
+              <span className="text-[11px] text-gray-500">
+                {pin.brtcNm} {currentIndex + 1}/{regionPins.length}
+              </span>
+              <button onClick={goNext} disabled={!hasNext}
+                className={`flex items-center gap-1 text-[11px] transition-colors ${hasNext ? "text-gray-700 hover:text-blue-600" : "text-gray-300"}`}>
+                다음
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 스크롤 영역 */}

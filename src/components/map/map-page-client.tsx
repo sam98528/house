@@ -62,7 +62,6 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const [expandedAnnouncement, setExpandedAnnouncement] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [visiblePins, setVisiblePins] = useState<MapPin[]>([]);
   const mapHandleRef = useRef<KakaoMapHandle>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -182,7 +181,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
 
   return (
     <div className="relative w-full h-dvh overflow-hidden">
-      <KakaoMap ref={mapHandleRef} pins={filtered} className="absolute inset-0 w-full h-full" onPinClick={handleMapPinClick} onBoundsChanged={setVisiblePins} />
+      <KakaoMap ref={mapHandleRef} pins={filtered} className="absolute inset-0 w-full h-full" onPinClick={handleMapPinClick} />
 
       {/* 사이드 패널 */}
       <div className={`absolute top-0 left-0 z-20 h-full transition-transform duration-300 w-[85vw] max-w-[380px] ${panelOpen ? "translate-x-0" : "-translate-x-full"}`}>
@@ -370,7 +369,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
 
       <DetailPanel
         pin={selectedPin}
-        visiblePins={visiblePins}
+        regionPins={filtered.filter(p => selectedPin && p.brtcNm === selectedPin.brtcNm)}
         onSelect={handleSelectPin}
         onClose={() => { setSelectedPin(null); mapHandleRef.current?.highlightPin(null); }}
       />
