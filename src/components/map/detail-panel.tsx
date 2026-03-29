@@ -50,12 +50,27 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
     <div
       className={`
         fixed md:absolute bottom-0 right-0 z-30
-        w-full md:w-[400px] md:bottom-5 md:right-5
+        w-full md:w-auto md:bottom-5 md:right-5
         transition-all duration-300 ease-out
         ${visible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
       `}
     >
-      <div className="bg-white md:rounded-2xl shadow-2xl border border-gray-200/80 overflow-hidden flex flex-col max-h-[60vh] md:max-h-[70vh]">
+      <div className="flex items-stretch gap-0 md:gap-2">
+        {/* 이전 버튼 — 카드 왼쪽 */}
+        {regionPins.length > 1 && (
+          <button
+            onClick={goPrev}
+            disabled={!hasPrev}
+            className={`hidden md:flex items-center justify-center w-10 rounded-xl transition-all shrink-0 ${
+              hasPrev ? "bg-white/90 hover:bg-white shadow-lg text-gray-600 hover:text-blue-600" : "bg-white/40 text-gray-300 cursor-default"
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+          </button>
+        )}
+
+        {/* 메인 카드 */}
+        <div className="bg-white md:rounded-2xl shadow-2xl border border-gray-200/80 overflow-hidden flex flex-col max-h-[60vh] md:max-h-[70vh] md:w-[400px] flex-1 md:flex-none">
         {/* 모바일 핸들 */}
         <div className="flex justify-center pt-2 pb-0.5 md:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-300" />
@@ -83,25 +98,19 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
             <button onClick={onClose} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">✕</button>
           </div>
 
-          {/* 지역 내 이전/다음 — 헤더 안쪽 */}
+          {/* 모바일 이전/다음 */}
           {regionPins.length > 1 && (
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex items-center gap-2 mt-3 md:hidden">
               <button onClick={goPrev} disabled={!hasPrev}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  hasPrev ? "bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95" : "bg-gray-50 text-gray-300"
-                }`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium ${hasPrev ? "bg-gray-100 text-gray-700" : "bg-gray-50 text-gray-300"}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                 이전
               </button>
-              <span className="text-[12px] text-gray-500 font-medium whitespace-nowrap px-2">
-                {currentIndex + 1} / {regionPins.length}
-              </span>
+              <span className="text-[11px] text-gray-400 whitespace-nowrap">{currentIndex + 1}/{regionPins.length}</span>
               <button onClick={goNext} disabled={!hasNext}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  hasNext ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95" : "bg-gray-50 text-gray-300"
-                }`}>
+                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium ${hasNext ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-300"}`}>
                 다음
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>
           )}
@@ -151,6 +160,27 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
             </a>
           </div>
         )}
+
+        {/* 데스크탑 카운터 */}
+        {regionPins.length > 1 && (
+          <div className="hidden md:flex justify-center py-1.5 text-[11px] text-gray-400 border-t border-gray-100">
+            {pin.brtcNm} {currentIndex + 1} / {regionPins.length}
+          </div>
+        )}
+      </div>
+
+      {/* 다음 버튼 — 카드 오른쪽 (데스크탑) */}
+      {regionPins.length > 1 && (
+        <button
+          onClick={goNext}
+          disabled={!hasNext}
+          className={`hidden md:flex items-center justify-center w-10 rounded-xl transition-all shrink-0 ${
+            hasNext ? "bg-white/90 hover:bg-white shadow-lg text-gray-600 hover:text-blue-600" : "bg-white/40 text-gray-300 cursor-default"
+          }`}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+        </button>
+      )}
       </div>
     </div>
   );
