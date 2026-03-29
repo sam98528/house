@@ -7,7 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
+import { Suspense } from "react";
+import { AnnouncementFilters } from "@/components/announcement/filters";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,60 +27,70 @@ const typeEmoji: Record<string, string> = {
   분양주택: "🏠",
   임대주택: "🏢",
   "공공분양(신혼희망)": "💒",
-  토지: "🌍",
-  상가: "🏪",
-  주거복지: "🏘️",
 };
 
-export const revalidate = 3600; // 1시간마다 재생성
+export const revalidate = 3600;
 
-export default async function HomePage() {
-  const { data: announcements, error } = await supabase
+interface PageProps {
+  searchParams: Promise<{
+    region?: string;
+    status?: string;
+    type?: string;
+    subtype?: string;
+    q?: string;
+  }>;
+}
+
+export default async function HomePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  let query = supabase
     .from("announcements")
     .select("*")
     .order("pan_nt_st_dt", { ascending: false })
-    .limit(50);
+    .limit(100);
 
+  if (params.region) {
+    query = query.ilike("cnp_cd_nm", `%${params.region}%`);
+  }
+  if (params.status) {
+    query = query.eq("pan_ss", params.status);
+  }
+  if (params.type) {
+    query = query.eq("upp_ais_tp_nm", params.type);
+  }
+  if (params.subtype) {
+    query = query.eq("ais_tp_cd_nm", params.subtype);
+  }
+  if (params.q) {
+    query = query.ilike("pan_nm", `%${params.q}%`);
+  }
+
+  const { data: announcements, count } = await query;
   const items = announcements ?? [];
-  const hasData = items.length > 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <header className="mb-6">
+      <header className="mb-4">
         <h1 className="text-2xl font-bold">청약하우스</h1>
         <p className="text-gray-500 text-sm mt-1">
           LH 분양임대 공고를 한눈에
         </p>
       </header>
 
-      {/* 필터 칩 */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        <Badge variant="secondary" className="whitespace-nowrap cursor-pointer">
-          전체
-        </Badge>
-        <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
-          🏠 분양주택
-        </Badge>
-        <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
-          🏢 임대주택
-        </Badge>
-        <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
-          💒 신혼희망타운
-        </Badge>
-        <Badge variant="outline" className="whitespace-nowrap cursor-pointer">
-          접수중
-        </Badge>
+      <Suspense fallback={<div className="h-20" />}>
+        <AnnouncementFilters />
+      </Suspense>
+
+      {/* 결과 카운트 */}
+      <div className="text-xs text-gray-400 mt-3 mb-2">
+        {items.length}건의 공고
       </div>
 
-      {!hasData && (
+      {items.length === 0 && (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-lg mb-2">공고 데이터가 없습니다</p>
-          <p className="text-sm">
-            <Link href="/api/sync" className="text-blue-500 underline">
-              /api/sync
-            </Link>
-            를 호출하여 데이터를 동기화하세요
-          </p>
+          <p className="text-lg mb-2">조건에 맞는 공고가 없습니다</p>
+          <p className="text-sm">필터를 변경해보세요</p>
         </div>
       )}
 
