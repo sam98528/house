@@ -4,15 +4,15 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { KakaoMap, type MapPin, type KakaoMapHandle } from "./kakao-map";
 import { DetailPanel } from "./detail-panel";
 
-const RECRUIT_OPTIONS = ["전체", "모집중", "모집예정"] as const;
+const RECRUIT_OPTIONS = ["전체", "접수중", "접수예정"] as const;
 const SUPPLY_TYPES = ["국민임대","매입임대","영구임대","전세임대","행복주택","10년임대","50년임대","공공지원민간임대주택","공공분양","공공임대"];
 const shortRegion = (r: string) => r.replace(/특별자치도|특별자치시|광역시|특별시/g, "").replace(/도$/, "");
 
-const recruitDot: Record<string, string> = { 모집중: "bg-green-500", 모집예정: "bg-blue-400", 모집완료: "bg-gray-300" };
+const recruitDot: Record<string, string> = { 접수중: "bg-green-500", 접수예정: "bg-blue-400", 접수완료: "bg-gray-300" };
 const recruitBadge: Record<string, string> = {
-  모집중: "text-green-700 bg-green-50 border-green-200",
-  모집예정: "text-blue-700 bg-blue-50 border-blue-200",
-  모집완료: "text-gray-500 bg-gray-50 border-gray-200",
+  접수중: "text-green-700 bg-green-50 border-green-200",
+  접수예정: "text-blue-700 bg-blue-50 border-blue-200",
+  접수완료: "text-gray-500 bg-gray-50 border-gray-200",
 };
 
 // 시도 좌표 (지역 클릭 시 지도 이동)
@@ -66,8 +66,8 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { 전체: pins.length, 모집중: 0, 모집예정: 0 };
-    pins.forEach((p) => { if (p.recruitStatus === "모집중") c["모집중"]++; else c["모집예정"]++; });
+    const c: Record<string, number> = { 전체: pins.length, 접수중: 0, 접수예정: 0 };
+    pins.forEach((p) => { if (p.recruitStatus === "접수중") c["접수중"]++; else c["접수예정"]++; });
     return c;
   }, [pins]);
 
@@ -111,12 +111,12 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
 
       announcements.forEach((pins, annName) => {
         total += pins.length;
-        const isRecruiting = pins.some(p => p.recruitStatus === "모집중");
+        const isRecruiting = pins.some(p => p.recruitStatus === "접수중");
         if (isRecruiting) recruiting += pins.length;
 
         annGroups.push({
           name: annName,
-          recruitStatus: pins[0].recruitStatus || "모집완료",
+          recruitStatus: pins[0].recruitStatus || "접수완료",
           type: pins[0].type || "",
           subType: pins[0].subType || "",
           date: pins[0].date || "",
@@ -260,7 +260,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                       <div className="flex items-center gap-2">
                         {region.recruiting > 0 && (
                           <span className="text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-medium">
-                            모집중 {region.recruiting}
+                            접수중 {region.recruiting}
                           </span>
                         )}
                         <span className="text-[11px] text-gray-400">{region.total}건</span>
@@ -303,7 +303,7 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                               {!isMulti && ann.pins[0].extra && (
                                 <p className="text-[11px] text-blue-600 mt-0.5 font-medium">{ann.pins[0].extra}</p>
                               )}
-                              <p className="text-[10px] text-gray-400 mt-0.5">모집 {ann.date}</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">접수{ann.date}</p>
                             </div>
                             {isMulti && (
                               <div className="shrink-0 flex items-center gap-1 mt-1">

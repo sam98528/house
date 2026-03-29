@@ -14,7 +14,7 @@ export interface MapPin {
   lng: number;
   title: string;
   status?: string;
-  recruitStatus?: "모집중" | "모집예정" | "모집완료";
+  recruitStatus?: "접수중" | "접수예정" | "접수완료";
   type?: string;
   subType?: string;
   region?: string;

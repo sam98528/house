@@ -72,8 +72,8 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
                 {pin.subType && <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{pin.subType}</span>}
                 {pin.recruitStatus && (
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                    pin.recruitStatus === "모집중" ? "text-green-700 bg-green-50" :
-                    pin.recruitStatus === "모집예정" ? "text-blue-600 bg-blue-50" : "text-gray-500 bg-gray-100"
+                    pin.recruitStatus === "접수중" ? "text-green-700 bg-green-50" :
+                    pin.recruitStatus === "접수예정" ? "text-blue-600 bg-blue-50" : "text-gray-500 bg-gray-100"
                   }`}>{pin.recruitStatus}</span>
                 )}
                 {pin.status === "정정공고" && <span className="text-[10px] px-2 py-0.5 rounded-full text-orange-600 bg-orange-50">정정</span>}
@@ -137,7 +137,7 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
             <InfoItem icon="🏗️" label="공급기관" value={pin.supplyOrg} />
             <InfoItem icon="🔥" label="난방방식" value={pin.heatMethod} />
             <div className="border-t border-gray-100 pt-3" />
-            <InfoItem icon="📅" label="모집기간" value={pin.date} />
+            <InfoItem icon="📅" label="접수기간" value={pin.date} />
             <InfoItem icon="📢" label="모집공고일" value={pin.announceDe} />
             <InfoItem icon="🎯" label="당첨자 발표일" value={pin.winnerDe} />
           </div>
