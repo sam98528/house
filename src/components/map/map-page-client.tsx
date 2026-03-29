@@ -139,12 +139,15 @@ export function MapPageClient({ pins }: { pins: MapPin[] }) {
                   <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">
                     {pin.title}
                   </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-xs text-gray-500">{pin.region}</span>
-                    <span className="text-xs text-gray-300">|</span>
-                    <span className="text-xs text-gray-500">{pin.subType || pin.type}</span>
+                  {pin.address && (
+                    <p className="text-xs text-gray-500 mt-1 truncate">📍 {pin.address}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[11px] text-gray-400">{pin.region}</span>
+                    <span className="text-[11px] text-gray-300">|</span>
+                    <span className="text-[11px] text-gray-400">{pin.subType || pin.type}</span>
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-1">{pin.date}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{pin.date}</p>
                 </div>
                 <span
                   className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded ${
