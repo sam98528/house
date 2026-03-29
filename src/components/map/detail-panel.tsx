@@ -85,19 +85,23 @@ export function DetailPanel({ pin, regionPins, onSelect, onClose }: DetailPanelP
 
           {/* 지역 내 이전/다음 — 헤더 안쪽 */}
           {regionPins.length > 1 && (
-            <div className="flex items-center justify-between mt-3 bg-gray-50 rounded-lg px-2 py-1.5">
+            <div className="flex items-center gap-2 mt-3">
               <button onClick={goPrev} disabled={!hasPrev}
-                className={`flex items-center gap-1 text-[11px] transition-colors ${hasPrev ? "text-gray-700 hover:text-blue-600" : "text-gray-300"}`}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  hasPrev ? "bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95" : "bg-gray-50 text-gray-300"
+                }`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                 이전
               </button>
-              <span className="text-[11px] text-gray-500">
-                {pin.brtcNm} {currentIndex + 1}/{regionPins.length}
+              <span className="text-[12px] text-gray-500 font-medium whitespace-nowrap px-2">
+                {currentIndex + 1} / {regionPins.length}
               </span>
               <button onClick={goNext} disabled={!hasNext}
-                className={`flex items-center gap-1 text-[11px] transition-colors ${hasNext ? "text-gray-700 hover:text-blue-600" : "text-gray-300"}`}>
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  hasNext ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95" : "bg-gray-50 text-gray-300"
+                }`}>
                 다음
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>
           )}

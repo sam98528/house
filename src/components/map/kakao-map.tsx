@@ -49,9 +49,22 @@ interface KakaoMapProps {
   onBoundsChanged?: (visiblePins: MapPin[]) => void;
 }
 
-// 선택된 마커용 커스텀 이미지 SVG (빨간색)
+// 선택된 마커 — 큰 사이즈 + 그라데이션 + 그림자
 const SELECTED_MARKER_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="33" height="44"><path d="M16.5 0C7.4 0 0 7.4 0 16.5S16.5 44 16.5 44 33 25.6 33 16.5 25.6 0 16.5 0z" fill="#EF4444"/><circle cx="16.5" cy="16.5" r="7" fill="white"/></svg>'
+  `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 44 58">
+    <defs>
+      <filter id="s" x="-20%" y="-10%" width="140%" height="130%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+      </filter>
+      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3B82F6"/>
+        <stop offset="100%" stop-color="#1D4ED8"/>
+      </linearGradient>
+    </defs>
+    <path d="M22 2C10.95 2 2 10.95 2 22c0 14.5 20 34 20 34s20-19.5 20-34C42 10.95 33.05 2 22 2z" fill="url(#g)" filter="url(#s)" stroke="white" stroke-width="2.5"/>
+    <circle cx="22" cy="22" r="8" fill="white"/>
+    <circle cx="22" cy="22" r="4.5" fill="#3B82F6"/>
+  </svg>`
 )}`;
 
 const GEO_NAME_MAP: Record<string, string> = {
@@ -184,8 +197,8 @@ export const KakaoMap = forwardRef<KakaoMapHandle, KakaoMapProps>(function Kakao
 
       // 선택 마커 이미지
       selectedImageRef.current = new kakao.maps.MarkerImage(
-        SELECTED_MARKER_SVG, new kakao.maps.Size(33, 44),
-        { offset: new kakao.maps.Point(16, 44) }
+        SELECTED_MARKER_SVG, new kakao.maps.Size(44, 58),
+        { offset: new kakao.maps.Point(22, 58) }
       );
 
       // bounds 변경 시 visible pins 콜백
