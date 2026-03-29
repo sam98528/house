@@ -63,12 +63,17 @@ export function DetailPanel({ pin, onClose }: DetailPanelProps) {
                     {pin.subType}
                   </span>
                 )}
-                {pin.status && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                    pin.status === "정정공고" ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50"
+                {pin.recruitStatus && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    pin.recruitStatus === "모집중" ? "text-green-700 bg-green-50" :
+                    pin.recruitStatus === "모집예정" ? "text-blue-600 bg-blue-50" :
+                    "text-gray-500 bg-gray-100"
                   }`}>
-                    {pin.status}
+                    {pin.recruitStatus}
                   </span>
+                )}
+                {pin.status === "정정공고" && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full text-orange-600 bg-orange-50">정정</span>
                 )}
               </div>
               <h2 className="text-[15px] font-bold text-gray-900 leading-snug">{pin.title}</h2>

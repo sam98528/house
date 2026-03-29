@@ -14,9 +14,11 @@ export interface MapPin {
   lng: number;
   title: string;
   status?: string;
+  recruitStatus?: "모집중" | "모집예정" | "모집완료";
   type?: string;
   subType?: string;
   region?: string;
+  brtcNm?: string;
   address?: string;
   complexName?: string;
   date?: string;
